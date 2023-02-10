@@ -1,0 +1,631 @@
+---
+title: "Data Organization and Cleaning File for manuscript 'Positive parenting moderates associations between childhood stress and corticolimbic structure' "
+author: "Isabella Kahhale MS, Kelly R. Barry MS, Jamie L Hanson, PhD"
+date: "1/31/2023"
+output: html_document
+---
+
+```{r packages and libraries, eval = TRUE, include = FALSE}
+library(psych)
+library(gt)
+library(gtsummary)
+library(lmerTest)
+library(lme4)
+library(interactions)
+library(jtools)
+library(ggthemes)
+library(gamm4)
+library(mgcv)
+library(gratia)
+library(lm.beta)
+library(ggplot2)
+library(sjPlot)
+library(sjtable2df)
+library(knitr)
+library(kableExtra)
+library(effects)
+library(reghelper)
+library(broom)
+library(plyr)
+library(tidyverse)
+library(dplyr)
+library(apaTables)
+library(Hmisc)
+library(scipub)
+library(xtable)
+library(psycho)
+library(tidyselect)
+library(ltm)
+```
+
+```{r load in data, eval = TRUE, include = FALSE}
+
+dat <- read.csv("/Users/isabellakahhale/OneDrive/Isabella/Research/HippoParentingPaper/data/HBN_all_sites_Freesurfer_w_subfields_w_phenotype_df2.csv")
+
+behavioral <- read.csv("/Users/isabellakahhale/OneDrive/Isabella/Research/HippoParentingPaper/data/HBN_CBCL_YSR.csv")
+
+psychopathology <- read.csv("/Users/isabellakahhale/OneDrive/Isabella/Research/HippoParentingPaper/data/HBN_psychopathology.csv")
+
+ysr <- read.csv("/Users/isabellakahhale/OneDrive/Isabella/Research/HippoParentingPaper/data/data-2022-07-06T17_51_25.565Z.csv")
+
+ses <- read.csv("/Users/isabellakahhale/OneDrive/Isabella/Research/HippoParentingPaper/data/HBN_FSQ02.csv")
+
+barratt <- read.csv("/Users/isabellakahhale/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Isabella/Research/HippoParentingPaper/data/revise_resubmit/ses/data-2023-01-18_baratt.csv")
+
+#WISC and FSQ 
+datarr <- read.csv("/Users/isabellakahhale/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Isabella/Research/HippoParentingPaper/data/revise_resubmit/data-2022-12-16T16_46_18.343Z_updated.csv")
+
+```
+
+```{r merge behavioral data, eval = TRUE, include = FALSE}
+
+behavioral <- behavioral %>% 
+  select(-X)
+
+dat <- inner_join(dat, behavioral, by = "sub_id")
+```
+
+```{r prep ysr frame for merge, eval = TRUE, include=FALSE}
+i = 1
+#same name as the subID column in phenotypic data
+ ysr$sub_id <- 0
+
+#testing loop
+for (i in 1:(nrow(ysr))) {
+
+  subid <- paste(ysr$Identifiers[i])   
+  
+  #split the string vector from the comma into two
+  split <- strsplit(subid,",")[[1]]
+  
+  #the first element of split is the SUBID we want
+  split[[1]]
+
+  newID <- paste("sub", split[[1]], sep ="-")
+
+  ysr$sub_id[i] <- newID
+}
+
+#select just want we want from ysr frame
+ ysr_join <- ysr %>% 
+   select(sub_id, YSR.YSR_Total_T)
+```
+
+```{r merge ysr dataframe, include=FALSE, eval = TRUE}
+
+dat <- left_join(dat, ysr_join, by = "sub_id")
+```
+
+```{r prep psychopathology_join frame for merge, eval = TRUE, include=FALSE}
+i = 1
+#same name as the subID column in phenotypic data
+ psychopathology$sub_id <- 0
+
+#testing loop
+for (i in 1:(nrow(psychopathology))) {
+
+  subid <- paste(psychopathology$Identifiers[i])   
+  
+  #split the string vector from the comma into two
+  split <- strsplit(subid,",")[[1]]
+  
+  #the first element of split is the SUBID we want
+  split[[1]]
+
+  newID <- paste("sub", split[[1]], sep ="-")
+
+  psychopathology$sub_id[i] <- newID
+}
+ 
+psychopathology_join <- psychopathology%>% 
+  select(sub_id, ConsensusDx.NoDX,
+         ConsensusDx.DX_01,
+         ConsensusDx.DX_01_Cat,
+         ConsensusDx.DX_02,
+         ConsensusDx.DX_02_Cat,
+         ConsensusDx.DX_03,
+         ConsensusDx.DX_03_Cat
+         )
+```
+
+```{r clean psychopathology_join frame, include = FALSE, eval = TRUE}
+
+psychopathology_join <- psychopathology_join %>% 
+  dplyr::rename(Any.Psychopathology = ConsensusDx.NoDX,
+                Dx.First.Name = ConsensusDx.DX_01,
+                Dx.First.Category = ConsensusDx.DX_01_Cat,
+                Dx.Second.Name = ConsensusDx.DX_02,
+                Dx.Second.Category = ConsensusDx.DX_02_Cat,
+                Dx.Third.Name = ConsensusDx.DX_03,
+                Dx.Third.Category = ConsensusDx.DX_03_Cat,
+                ) 
+
+psychopathology_join$Any.Psychopathology <- as.factor(psychopathology_join$Any.Psychopathology)
+psychopathology_join$Dx.First.Name <- as.factor(psychopathology_join$Dx.First.Name)
+psychopathology_join$Dx.First.Category <- as.factor(psychopathology_join$Dx.First.Category)
+psychopathology_join$Dx.Second.Name <- as.factor(psychopathology_join$Dx.Second.Name)
+psychopathology_join$Dx.Second.Category <- as.factor(psychopathology_join$Dx.Second.Category)
+psychopathology_join$Dx.Third.Name <- as.factor(psychopathology_join$Dx.Third.Name)
+psychopathology_join$Dx.Third.Category <- as.factor(psychopathology_join$Dx.Third.Category)
+
+dat <- left_join(dat, psychopathology_join, by = "sub_id")
+```
+
+```{r prep barratt frame for merge, eval = TRUE, include=FALSE}
+# prep subject ID column
+i = 1
+#same name as the subID column in phenotypic data
+ barratt$sub_id <- 0
+
+#testing loop
+for (i in 1:(nrow(barratt))) {
+
+  subid <- paste(barratt$Identifiers[i])   
+  
+  #split the string vector from the comma into two
+  split <- strsplit(subid,",")[[1]]
+  
+  #the first element of split is the SUBID we want
+  split[[1]]
+
+  newID <- paste("sub", split[[1]], sep ="-")
+
+  barratt$sub_id[i] <- newID
+}
+ 
+#select/clean relevant barratt columns 
+ barratt_join <- barratt %>% 
+  select(sub_id,
+         Barratt.Barratt_Total,# total barratt score
+         Barratt.Barratt_P1_Edu, #parent 1 education
+         Barratt.Barratt_P2_Edu, #parent 2 education
+         Barratt.Barratt_P1_Occ, #parent 1 occupation
+         Barratt.Barratt_P2_Occ #parent 2 education
+         ) %>% 
+      # take the larger number of P1 edu and P2 edu and save in P_Edu
+  mutate(P_Edu = ifelse(Barratt.Barratt_P1_Edu > Barratt.Barratt_P2_Edu | is.na(Barratt.Barratt_P2_Edu),
+                        #if  p1 education is greater than p2 or p2 is NA
+                        Barratt.Barratt_P1_Edu,
+                        #make P_Edu the same as P1
+                        Barratt.Barratt_P2_Edu
+                        #else make it the same as p2
+                        ),
+             # take the larger number of P1 occ and P2 occ and save in P_Occ
+         P_Occ = ifelse(Barratt.Barratt_P1_Occ > Barratt.Barratt_P2_Occ | is.na(Barratt.Barratt_P2_Occ),
+                        #if  p1 occupation is greater than p2
+                        Barratt.Barratt_P1_Occ,
+                        #make P_Edu the same as P1
+                        Barratt.Barratt_P2_Occ
+                        #else make it the same as p2
+                        ),
+         Z_P_Edu = scale(P_Edu),
+         Z_P_Occ = scale(P_Occ),
+         Z_Edu_Occ = ifelse(!is.na(Z_P_Edu) & !is.na(Z_P_Occ),
+                        #if both z score edu and z score occ are not NA
+                          (Z_P_Edu+Z_P_Occ)/2,
+                        ifelse(!is.na(Z_P_Edu) & is.na(Z_P_Occ),
+                               #if Z_P_Edu is not NA but Z_P_Occ is....
+                               Z_P_Edu,
+                               #then make it Z_P_Edu
+                        #else make it Z_P_Occ
+                        Z_P_Occ))
+         )
+ 
+ barratt_join <- barratt_join %>% 
+   select(sub_id, Barratt.Barratt_Total,Z_Edu_Occ)
+                        
+```
+
+```{r merge barratt data, eval = TRUE, include = FALSE}
+dat <- left_join(dat, barratt_join, by = "sub_id")
+
+# remove duplicate rows
+dat <- dat[!duplicated(dat$sub_id),]
+```
+
+```{r prep datarr frame for merge, eval = TRUE, include=FALSE}
+i = 1
+#same name as the subID column in phenotypic data
+ datarr$sub_id <- 0
+
+#testing loop
+for (i in 1:(nrow(datarr))) {
+
+  subid <- paste(datarr$Identifiers[i])   
+  
+  #split the string vector from the comma into two
+  split <- strsplit(subid,",")[[1]]
+  
+  #the first element of split is the SUBID we want
+  split[[1]]
+
+  newID <- paste("sub", split[[1]], sep ="-")
+
+  datarr$sub_id[i] <- newID
+}
+ 
+ datarr_join <- datarr %>% 
+  select(sub_id,
+         FSQ.FSQ_02,
+         FSQ.FSQ_03,
+         FSQ.FSQ_04,
+         WISC.WISC_FSIQ,
+         WISC.WISC_FSIQ_Sum
+         )
+```
+
+```{r prep SES data, eval = TRUE, include=FALSE}
+
+#sesrecode <- read.csv("/Users/isabellakahhale/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Isabella/Research/HippoParentingPaper/data/revise_resubmit/ses/HBN_FSQ04_Recode.csv")
+
+datarr_join$FSQ.FSQ_04 <- as.numeric(datarr_join$FSQ.FSQ_04)
+datarr_join$FSQ.FSQ_04 <- as.character(datarr_join$FSQ.FSQ_04)
+
+#recode using log transfored vars
+datarr_join<- datarr_join %>% mutate(income_recode = recode(FSQ.FSQ_04,
+                                      "0" = "3.698970004",
+                                      "1" = "4.176091259",
+                                      "2" = "4.397931323",
+                                      "3" = "4.54406184",
+                                      "4" = "4.653207688",
+                                      "5" = "4.740358741",
+                                      "6" = "4.812910016",
+                                      "7" = "4.875058368",
+                                      "8" = "4.929416371",
+                                      "9" = "4.97772132", 
+                                      "10" = "5.096908276",
+                                      "11" = "5.301029996",
+                                      "12" = NA_character_))
+
+
+datarr_join<- datarr_join %>% mutate(income_cat_recode = recode(FSQ.FSQ_04,
+                                      "0" = "Less than $10,000",
+                                      "1" = "$10,000 to $19,999",
+                                      "2" = "$20,000 to $29,999",
+                                      "3" = "$30,000 to $39,999",
+                                      "4" = "$40,000 to $49,999",
+                                      "5" = "$50,000 to $59,999",
+                                      "6" = "$60,000 to $69,999",
+                                      "7" = "$70,000 to $79,999",
+                                      "8" = "$80,000 to $89,999",
+                                      "9" = "$90,000 to $99,999", 
+                                      "10" = "$100,000 to $149,999",
+                                      "11" = "$150,000 or more",
+                                      "12" = "Choose not to disclose"))
+
+datarr_join$income_cat_recode <- factor(datarr_join$income_cat_recode, levels = c("Less than $10,000",
+                                      "$10,000 to $19,999",
+                                      "$20,000 to $29,999",
+                                      "$30,000 to $39,999",
+                                      "$40,000 to $49,999",
+                                      "$50,000 to $59,999",
+                                      "$60,000 to $69,999",
+                                      "$70,000 to $79,999",
+                                      "$80,000 to $89,999",
+                                      "$90,000 to $99,999", 
+                                      "$100,000 to $149,999",
+                                      "$150,000 or more",
+                                      "Choose not to disclose"))
+
+
+#annual income -- missing 121 people
+length(which(is.na(datarr_join$income_recode)))
+
+#employment caregiver 
+datarr_join$FSQ.FSQ_02 <- as.numeric(datarr_join$FSQ.FSQ_02)
+length(which(is.na(datarr_join$FSQ.FSQ_02)))
+
+# employment other caregiver
+datarr_join$FSQ.FSQ_03 <- as.numeric(datarr_join$FSQ.FSQ_03)
+length(which(is.na(datarr_join$FSQ.FSQ_03)))
+# replace values of 2 with 0 for FSQ03
+
+datarr_join <- datarr_join %>% mutate(FSQ.FSQ_03_recode=recode(FSQ.FSQ_03,
+                                            "0" = "0", 
+                                            "1" = "1",
+                                            "2"="0"))
+
+datarr_join$FSQ.FSQ_03_recode <- as.numeric(datarr_join$FSQ.FSQ_03_recode)
+
+datarr_join$parental_employment <- 0
+
+parental_employment <- datarr_join %>% 
+  dplyr::rowwise() %>% 
+  dplyr::mutate(parental_employment = sum(c(FSQ.FSQ_03_recode,FSQ.FSQ_02)))
+
+datarr_join$parental_employment <- parental_employment$parental_employment
+
+datarr_join <- datarr_join %>% select(
+  sub_id, income_cat_recode, WISC.WISC_FSIQ, WISC.WISC_FSIQ_Sum, income_recode, parental_employment
+)
+```
+
+```{r merge datarr data, eval = TRUE, include = FALSE}
+dat <- left_join(dat, datarr_join, by = "sub_id")
+
+# remove duplicate rows
+dat <- dat[!duplicated(dat$sub_id),]
+```
+
+```{r read in and merge demographics w full data, eval = FALSE, include = FALSE}
+demodat <- read.csv("/Users/isabellakahhale/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Isabella/Research/HippoParentingPaper/data/HBN_race_ethnicity_demo.csv", strip.white = TRUE,stringsAsFactors = FALSE,na.strings = ".")
+
+demodat$subid <- 0
+
+for (i in 1:(nrow(demodat))) {
+
+  subject <- paste(demodat$Identifiers[i])   
+  
+  split <- strsplit(subject,",")[[1]]
+
+  demodat$subid[i] <- split[1]
+  }
+
+
+dat$subid <- 0
+
+for (i in 1:(nrow(dat))) {
+
+  subject <- paste(dat$sub_id[i])   
+  
+  split <- strsplit(subject,"-")[[1]]
+
+  dat$subid[i] <- split[2]
+  }
+
+fulldat <- left_join(dat, demodat, by = "subid")
+```
+
+```{r pull demographic counts for manuscript, eval = FALSE, include = FALSE}
+
+fulldat$PreInt_Demos_Fam.youth_Race
+fulldat$PreInt_Demos_Fam.youth_Race_Other
+
+fulldat$PreInt_Demos_Fam.youth_Ethnicity
+
+table(fulldat$PreInt_Demos_Fam.youth_Race)
+
+table(fulldat$PreInt_Demos_Fam.youth_Race_Other)
+
+table(fulldat$PreInt_Demos_Fam.youth_Ethnicity)
+
+# "0= Not Hispanic or Latino
+#1= Hispanic or Latino
+#2= Decline to specify
+#3= Unknown"
+
+race coding: 
+
+# "0= White/Caucasian
+# 1= Black/African American
+# 2= Hispanic
+# 3= Asian
+# 4= Indian
+# 5= Native American Indian
+# 6= American Indian/Alaskan Native
+# 7= Native Hawaiian/Other Pacific Islander
+# 8= Two or more races
+# 9= Other race
+# 10= Unknown
+# 11=Choose not to specify"
+```
+
+```{r Model prep: making total hippocampus and amyg vars, eval = TRUE, include = FALSE}
+
+dat <- dat %>% mutate(
+  TotalHippocampalVolume = (Left.Hippocampus + Right.Hippocampus)
+)
+
+dat <- dat %>% mutate(
+  TotalAmygdalaVolume = (Left.Amygdala + Right.Amygdala)
+)
+
+```
+
+```{r Model prep: making average NLE report, eval = FALSE, include = FALSE}
+dat <- dat %>% 
+  rowwise() %>% 
+  mutate(
+    avgNLE = mean(c(NLES_P.NLES_P_Upset_Avg,NLES_SR.NLES_SR_Upset_Avg), na.rm = TRUE)
+  )
+
+dat$avgNLE <- as.numeric(dat$avgNLE)
+```
+
+```{r renaming vars, eval = TRUE, include = FALSE}
+# rename vars to be more clear
+
+dat <- dat %>% 
+  dplyr::rename(Scan.Quality = CAT12_Grade,
+         Sex = Basic_Demos.Sex,
+         Age = Basic_Demos.Age,
+         Site = site,
+         Total.Intracranial.Vol = eTIV,
+         Childhood.Stress = NLES_SR.NLES_SR_Upset_Avg,
+         Pos.Parenting.Youth.Report = APQ_SR.APQ_SR_PP,
+         Pos.Parenting.Caregiver.Report = APQ_P.APQ_P_PP,
+         Strengths.Difficulties.Total = SDQ.SDQ_Difficulties_Total,
+         Childhood.Stress.Cargiver.Report = NLES_P.NLES_P_Upset_Avg,
+         Total.Gray.Vol = TotalGrayVol,
+         Youth.Self.Report.Total = YSR.YSR_Total,
+         Youth.Self.Report.Total_Tscore = YSR.YSR_Total_T,
+         WISC.FSIQ = WISC.WISC_FSIQ, 
+         WISC.FSIQ.Sum = WISC.WISC_FSIQ_Sum,
+         Barratt.Total = Barratt.Barratt_Total,
+         Barratt.Edu.Occ = Z_Edu_Occ,
+         Income_Cat = income_cat_recode,
+         Income = income_recode, 
+         Parental.Employment = parental_employment
+         )
+```
+
+```{r scaling data prep and rename, eval = TRUE, include = FALSE}
+dat$Sex <- factor(dat$Sex, 
+                 levels=c(0,1), 
+                 labels=c("Male","Female"))
+
+dat$WISC.FSIQ <-as.numeric(dat$WISC.FSIQ)
+dat$WISC.FSIQ.Sum <-as.numeric(dat$WISC.FSIQ.Sum)
+dat$Income <-as.numeric(dat$Income)
+dat$Parental.Employment <-as.factor(dat$Parental.Employment)
+dat$Income_Cat <-as.factor(dat$Income_Cat)
+ 
+
+scalevars <- c("Scan.Quality", "Age", "Total.Intracranial.Vol", "Childhood.Stress", "Pos.Parenting.Youth.Report",  "Pos.Parenting.Caregiver.Report", "Childhood.Stress.Cargiver.Report", "Strengths.Difficulties.Total", "Youth.Self.Report.Total",	"Youth.Self.Report.Total_Tscore", "Total.Gray.Vol", "Left.Hippocampus", "Right.Hippocampus", "Left.Amygdala", "Right.Amygdala", "TotalHippocampalVolume", "TotalAmygdalaVolume", "WISC.FSIQ", "WISC.FSIQ.Sum", "Barratt.Total", "Income")
+
+dat$Sex <- as.factor(dat$Sex)
+dat$Parental.Employment <- as.factor(dat$Parental.Employment)
+
+dat <- as.data.frame(dat)
+
+scaledat <- dat %>% mutate_at(scalevars, scale)
+
+#uncomment to save files
+
+#write.csv(dat, "HBN_data_all_01312023.csv")
+#write.csv(scaledat, "HBN_scaledata_all_01312023.csv")
+```
+
+
+### Code to calcuate reliability for main measures
+
+```{r read in data for alpha,eval=TRUE, include=FALSE}
+alphadat <- read.csv("/Users/isabellakahhale/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Isabella/Research/HippoParentingPaper/data/revise_resubmit/data_for_reliability.csv")
+```
+
+```{r clean alpha dat,eval=TRUE, include=FALSE}
+i = 1
+#same name as the subID column in phenotypic data
+ alphadat$sub_id <- 0
+
+#testing loop
+for (i in 1:(nrow(alphadat))) {
+
+  subid <- paste(alphadat$Identifiers[i])   
+  
+  #split the string vector from the comma into two
+  split <- strsplit(subid,",")[[1]]
+  
+  #the first element of split is the SUBID we want
+  split[[1]]
+
+  newID <- paste("sub", split[[1]], sep ="-")
+
+  alphadat$sub_id[i] <- newID
+}
+
+ alphadat_join <- left_join(dat, alphadat, by = "sub_id") 
+```
+
+Internal reliability estimates were calculated both for the full APQ (Youth Report) and the Positive Parenting Subscale (Youth Report) using the total sample of 485 observations. Chronbach's alpha values were within the "good" range, with Chronbach's $alpha$ for full APQ (Youth) =  0.875 and Chronbach's $alpha$ for Positive Parenting Subscale (Youth) =  0.815. 
+
+```{r APQ Youth, eval=TRUE, include=FALSE}
+apq_join_sr <- alphadat_join %>% 
+  dplyr::select(starts_with("APQ_SR.APQ_SR"))
+
+#alpha for whole measure
+cronbach.alpha(apq_join_sr[,1:51])
+# alpha: 0.875
+
+#list of the positive parenting items
+#Positive Parenting: 2, 5, 13, 16, 18, 27
+
+pp_items <- c("APQ_SR.APQ_SR_02","APQ_SR.APQ_SR_05","APQ_SR.APQ_SR_13","APQ_SR.APQ_SR_16","APQ_SR.APQ_SR_18","APQ_SR.APQ_SR_27")
+
+cronbach.alpha(apq_join_sr[,pp_items])
+# alpha for positive parenting 0.815
+
+```
+
+Internal reliability estimates were also calculated both for the full APQ (Parent Report) and the Positive Parenting Subscale (Parent Report) using the total sample of 485 observations. Chronbach's alpha values were within the "good" range, with Chronbach's $alpha$ for full APQ (Parent) =  0.855 and Chronbach's $alpha$ for Positive Parenting Subscale (Parent) =  0.843. 
+
+```{r APQ Parent, eval=TRUE, include=FALSE}
+apq_join_p <- alphadat_join %>% 
+  dplyr::select(starts_with("APQ_P.APQ_P"))
+
+#alpha for whole measure
+cronbach.alpha(apq_join_p[,1:42])
+# alpha: 0.855
+
+#list of the positive parenting items
+#Positive Parenting: 2, 5, 13, 16, 18, 27
+
+pp_items <- c("APQ_P.APQ_P_02","APQ_P.APQ_P_05","APQ_P.APQ_P_13","APQ_P.APQ_P_16","APQ_P.APQ_P_18","APQ_P.APQ_P_27")
+
+cronbach.alpha(apq_join_p[,pp_items])
+# alpha = 0.843
+```
+
+Internal reliability estimates were  calculated both for the full NLE (Youth Report) and the "Average Upsetness" Score (Youth Report) we used as our main outcome variable, using the total sample of 485 observations. Chronbach's alpha values were within the "good" to "excellent" range, with Chronbach's $alpha$ for full NLE (Youth) =  0.9 and Chronbach's $alpha$ for "Average Upsetness" Score (Youth) =  0.766. 
+
+
+```{r NLE Youth, eval=TRUE, include=FALSE}
+nle_join_sr <- alphadat_join %>% 
+  dplyr::select(starts_with("NLES_SR.NLES_SR"))
+
+#alpha for whole measure
+cronbach.alpha(nle_join_sr[,1:66])
+# alpha: 0.855
+
+# al the upsetness items begin with letter c
+
+upset_items <- nle_join_sr %>% 
+  dplyr::select(contains("c")) %>% 
+  dplyr::select(-NLES_SR.NLES_SR_TotalOccurance)
+
+cronbach.alpha(upset_items)
+# alpha = 0.766
+```
+
+Internal reliability estimates were  calculated both for the full NLE (Parent Report) and the "Average Upsetness" Score (Parent Report) we used as our main outcome variable, using the total sample of 485 observations. Chronbach's alpha values were within the "acceptable" to "good" range, with Chronbach's $alpha$ for full NLE (Parent) =  0.87 and Chronbach's $alpha$ for "Average Upsetness" Score (Parent) =  0.706. 
+
+```{r NLE Parent, eval=TRUE, include=FALSE}
+nle_join_p <- alphadat_join %>% 
+  dplyr::select(starts_with("NLES_P.NLES_P"))
+
+#alpha for whole measure
+cronbach.alpha(nle_join_p[,1:63])
+# alpha: 0.87
+
+#list of the upsetness ratings
+upset_items <- nle_join_p %>% 
+  dplyr::select(contains("c")) 
+
+cronbach.alpha(upset_items)
+# alpha is 0.706
+```
+
+Internal reliability estimates were  calculated for the Youth Self Report Total score using the total sample of 485 observations. Chronbach's alpha values were well within the "excellent" range with Chronbach's $alpha$ for YSR Total score =  0.993.
+
+```{r YSR, eval=TRUE, include=FALSE}
+ysr_join <- alphadat_join %>% 
+  dplyr::select(starts_with("YSR.YSR"))
+
+#alpha for whole measure
+cronbach.alpha(ysr_join[,1:119])
+# alpha:  0.993
+
+```
+
+Internal reliability estimates were  calculated for the Strength and Difficulties Questionnaire (SDQ) Total Difficulties score using the total sample of 485 observations. Chronbach's alpha values were well within the "good" range with Chronbach's $alpha$ for SDQ Total Difficulties score =  0.884. 
+
+```{r SDQ, eval=TRUE, include=FALSE}
+sdq_join <- alphadat_join %>% 
+  dplyr::select(starts_with("SDQ.SDQ"))
+
+sdq_join2 <- sdq_join[,1:25]
+prosoc <- c("SDQ.SDQ_01", "SDQ.SDQ_04", "SDQ.SDQ_09", "SDQ.SDQ_17", "SDQ.SDQ_20")
+
+sdq_join2 <- sdq_join2 %>% 
+  dplyr::select(-prosoc)
+
+# find which are difficulties subscore 
+# https://www.sdqinfo.org/c9.html
+# all items but 5 prosocial which are pconsid (1), pshares (4), pcaring (9), pkind (17), phelpout (20)
+
+#alpha for Difficulties total score
+cronbach.alpha(sdq_join2)
+# alpha:  0.92
+```
+
+
