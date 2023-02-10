@@ -1,0 +1,2186 @@
+---
+title: "Positive parenting moderates associations between childhood stress and corticolimbic structure: supplement"
+subtitle: "Study GitHub: https://github.com/isabellakahhale/CorticoLimbicParenting"
+author: Isabella Kahhale MS, Kelly R. Barry MS, Jamie L Hanson, PhD
+date: "02/10/2023"
+output:
+  pdf_document:
+    toc: true
+    fig_caption: yes
+    latex_engine: pdflatex
+    toc_depth: 3
+  word_document:
+    toc: yes
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_float: yes
+---
+
+```{r read in data, eval = TRUE, include = FALSE}
+
+dat <- read.csv("/Users/isabellakahhale/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Isabella/Research/HippoParentingPaper/Submissions/PNAS_submission/Submission2_R&R/HBN_data_all_01312023.csv")
+
+scaledat <- read.csv("/Users/isabellakahhale/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Isabella/Research/HippoParentingPaper/Submissions/PNAS_submission/Submission2_R&R/HBN_scaledata_all_01312023.csv")
+```
+
+```{r libraries, eval = TRUE, include = FALSE}
+library(psych)
+library(gt)
+library(gtsummary)
+library(lmerTest)
+library(lme4)
+library(interactions)
+library(jtools)
+library(ggthemes)
+library(gamm4)
+library(mgcv)
+library(gratia)
+library(lm.beta)
+library(ggplot2)
+library(sjPlot)
+library(sjtable2df)
+library(knitr)
+library(kableExtra)
+library(effects)
+library(reghelper)
+library(broom)
+library(plyr)
+library(tidyverse)
+library(apaTables)
+library(Hmisc)
+library(scipub)
+library(xtable)
+library(psycho)
+library(multilevelTools)
+library(performance)
+library(car)
+library(BonEV)
+library(dplyr)
+
+```
+
+```{r set number of digits in jtools summ to be 4, eval = TRUE, include = FALSE, echo = FALSE}
+set_summ_defaults(
+  digits = 4
+)
+```
+
+# Main Manuscript Tables, Figures, & Models 
+
+## Table 1: Descriptives
+
+```{r fixing income scaling, eval=TRUE, include=FALSE}
+#fixing income 
+dat$Income_Cat <- factor(dat$Income_Cat, levels = c("Less than $10,000",
+                                      "$10,000 to $19,999",
+                                      "$20,000 to $29,999",
+                                      "$30,000 to $39,999",
+                                      "$40,000 to $49,999",
+                                      "$50,000 to $59,999",
+                                      "$60,000 to $69,999",
+                                      "$70,000 to $79,999",
+                                      "$80,000 to $89,999",
+                                      "$90,000 to $99,999", 
+                                      "$100,000 to $149,999",
+                                      "$150,000 or more",
+                                      "Choose not to disclose"))
+```
+
+```{r table 1 main manuscript, eval = TRUE, include = FALSE}
+dat %>% 
+  mutate(new_grayvol = Total.Gray.Vol/1000,
+         Total = 1) %>% # doing this to display N for each site/type 
+  # select in order of how we want to appear in table
+  dplyr::select(c(Total, Age, Sex, Income_Cat, Pos.Parenting.Youth.Report, Pos.Parenting.Caregiver.Report, Childhood.Stress, Childhood.Stress.Cargiver.Report, Youth.Self.Report.Total, Strengths.Difficulties.Total, new_grayvol, Site)) %>% 
+  dplyr::rename(
+  "Age" = Age,
+  "Sex" = Sex, 
+  "Income"= Income_Cat,
+  "Positive Parenting: Youth"  = Pos.Parenting.Youth.Report,
+  "Positive Parenting: Caregiver" = Pos.Parenting.Caregiver.Report, 
+  "Negative Life Events: Youth" = Childhood.Stress,
+  "Negative Life Events: Caregiver" = Childhood.Stress.Cargiver.Report,
+  "Behavioral Problems: Youth" = Youth.Self.Report.Total,
+  "Behavioral Problems: Caregiver" = Strengths.Difficulties.Total,
+  "Total Gray Matter Volume" = new_grayvol,
+  "Imaging Site" = Site,
+  ) %>% 
+  #tbl_summary(by = "site", missing = "no") %>% 
+  tbl_summary(
+    by = NULL,
+    statistic = list(all_continuous() ~ "{mean} ({sd})",
+                     all_categorical() ~ "{n} ({p}%)",
+                     Total ~ "N = {N}"),
+    missing = "no") %>% 
+  #  add_overall(last = TRUE, col_label = "**Overall**") %>% 
+  modify_header(all_stat_cols(FALSE) ~ "**{level}**") %>%  # remove the n from header
+  as_gt() %>% 
+   tab_header(
+    title = "Table 1. Descriptive Statistics for Key Variables") %>% 
+    gt::tab_source_note(gt::md("CBIC = Citigroup Biomedical Imaging Center, CUNY = The City University of New York, RU = Rutgers University, SI = Staten Island. Units of measurement are the following: Age (years), Positive Parenting: Youth/Caregiver (raw scores from the Alabama Parenting Questionnaire: Positive Parenting Subscale, Negative Life Events: Youth/Caregiver (Negative Life Events Scale, average upsetness score), Behavioral Problems: Youth (Youth Self Report Total Behavioral Problems Raw Score), Behavioral Problems: Caregiver (Strength and Difficulties Questionnaire Total Raw Score), and Total Gray Matter Volume (voxels divided by 1,000).")) %>% 
+  tab_footnote(
+    footnote = "Total gray matter volume values are divided by 1,000",
+    locations = cells_body(rows = 26)
+  ) %>%  gt::gtsave(             # save table as image
+   filename = "table_1.png"
+  )
+
+# had to manually edit the "total" column out
+
+# this is table 1 for main manuscript
+```
+
+
+```{r table1 print, message = FALSE, echo=FALSE, fig.align = "center",out.width = '85%', out.extra = ""}
+knitr::include_graphics("/Users/isabellakahhale/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Isabella/Research/HippoParentingPaper/Submissions/PNAS_submission/Submission2_R&R/table_1.png")
+```
+
+**Table 1.** This table depicts overall descriptive statistics for key variables. Means and standard deviations are reported for continuous variables; group n and percentages are reported for categorical variables.
+
+\newpage 
+
+## Stress on Behavior
+
+### Childhood Stress and Youth-Report Parenting on Youth-Report Behavioral Problems 
+
+```{r ysr kid stress kid parenting behavioral model, include = TRUE, eval = TRUE, echo = FALSE}
+
+YSR.Total_kidkid_model<-lm(Youth.Self.Report.Total ~ Sex + Age + 
+                             Barratt.Edu.Occ + 
+                             Site +
+                             Childhood.Stress*Pos.Parenting.Youth.Report, 
+                           data=scaledat)
+
+summ(YSR.Total_kidkid_model, getOption("jtools-digits", 4))
+
+# uncomment to calculate simple slopes 
+#sim_slopes(YSR.Total_kidkid_model, 
+#           pred = Childhood.Stress, 
+#           modx = Pos.Parenting.Youth.Report)
+
+```
+
+\newpage 
+
+### Figure 1: The Interaction between Stress & Parenting on Youth Behavioral Problems
+
+```{r plot figure 1, eval=TRUE, include=TRUE, echo=FALSE}
+names <- as_labeller(c("-1SD", "Mean", "+1SD"))
+
+# Faceted Plot: Childhood Stress and Behavioral Problems at 3 Levels of Positive Parenting"
+interact_plot(YSR.Total_kidkid_model, pred = Childhood.Stress, modx = Pos.Parenting.Youth.Report,plot.points = TRUE,modx.values = c(-1.0,0,1.0),colors="Qual1",  line.thickness = 1.5,partial.residuals = TRUE,facet.modx = TRUE, modx.labels = c("-1 SD Pos. Parenting","Mean Pos. Parenting","+1 SD Pos. Parenting")) + 
+  xlab("Childhood Stress") + 
+  ylab("Behavioral Problems: Youth Report")
+```
+
+**Figure 1.**  The association between childhood stress and youth behavioral problems at three levels of positive parenting. Youth reporting higher (+1 SD of positive parenting, in green) are shown on the left side of the figure; youth with mean levels of positive parenting are shown in red, and youth with lower levels of positive parenting (-1 SD) are shown in purple. For all of these graphs, stress is on the horizontal axis and behavioral problems (scaled, not raw YSR values) are on the vertical axis.
+
+\newpage 
+
+### Childhood Stress and Caregiver-Report Parenting on Youth-Report Behavioral Problems
+
+```{r YSR youth Stress Caregiver Parenting, eval= TRUE, include = TRUE, echo = FALSE}
+ysr_youthcaregiver_model <- lm(Youth.Self.Report.Total ~ Sex + 
+                                Age + Barratt.Edu.Occ + Site + 
+                                 Childhood.Stress * Pos.Parenting.Caregiver.Report, 
+                                data = scaledat)
+
+summ(ysr_youthcaregiver_model, getOption("jtools-digits", 4))
+
+
+```
+
+\newpage
+
+## Stress and Positive Parenting on Hippocampal Volume
+
+### Childhood Stress and Youth-Report Parenting on Total Hippocampal Volume
+
+```{r Total Hippo Kid Kid Total.Intracranial.Vol Model, include = TRUE, eval = TRUE, echo = FALSE}
+Total_hippocampus_model_kidkid <-lmer(TotalHippocampalVolume ~ Scan.Quality + 
+                                        Sex + Age + Barratt.Edu.Occ +
+                                        Total.Intracranial.Vol + 
+                                        Childhood.Stress * Pos.Parenting.Youth.Report + 
+                                        (1|Site), 
+                                      data=scaledat)
+
+summ(Total_hippocampus_model_kidkid, digits = getOption("jtools-digits", 4))
+
+# uncomment to calculate simple slopes 
+#sim_slopes(Total_hippocampus_model_kidkid, 
+#           pred = Childhood.Stress, 
+#           modx = Pos.Parenting.Youth.Report)
+```
+
+\newpage
+
+### Figure 2. The Interaction between Childhood Stress and Parenting on Total Hippocampal Volume
+
+```{r hippofigure, echo=FALSE, out.width = '80%', fig.align="center"}
+knitr::include_graphics("/Users/isabellakahhale/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Isabella/Research/HippoParentingPaper/Submissions/PNAS_submission/Submission2_R&R/Figure2.png")
+```
+
+**Figure 2.** The association between childhood stress and total hippocampal volume at three levels of positive parenting. Youth reporting higher (+1 SD of positive parenting, in green) are shown on the left side of the figure; youth with mean levels of positive parenting are shown in red, and youth with lower levels of positive parenting (-1SD) are shown in purple. For all of these graphs, stress is on the horizontal axis and hippocampal volume is on the vertical axis. In the right corner, a 3-D figure showing the hippocampus, our region of interest. The hippocampus is depicted in blue and is shown on a transparent rendering of the whole brain.
+
+
+```{r plot Hippo Kid Kid JLH Plot Code, eval = FALSE, include = FALSE, echo = FALSE}
+rawdat<-dat
+# Standardize IVs
+rawdat$Scan.QualityZ<-scale(rawdat$Scan.Quality,scale = TRUE)
+rawdat$AgeZ<-scale(rawdat$Age,scale = TRUE)
+rawdat$Total.Intracranial.VolZ<-scale(rawdat$Total.Intracranial.Vol,scale = TRUE)
+rawdat$Childhood.StressZ<-scale(rawdat$Childhood.Stress,scale = TRUE)
+rawdat$Pos.Parenting.Youth.ReportZ<-scale(rawdat$Pos.Parenting.Youth.Report,scale = TRUE)
+rawdat$Sex<-as.factor(rawdat$Sex)
+rawdat$Site<-as.factor(rawdat$Site)
+
+# LMM of interest
+Total_hippocampus_model_kidkid_raw <-lmer(TotalHippocampalVolume ~ Scan.QualityZ + Sex + AgeZ+ Total.Intracranial.VolZ + Childhood.StressZ * Pos.Parenting.Youth.ReportZ + (1|Site), data=rawdat)
+
+
+# Output Model Estimates
+summ(Total_hippocampus_model_kidkid_raw)
+#Childhood.StressZ:Pos.Parenting.Youth.ReportZ           66.59    28.68     2.32   472.02   0.02
+
+
+hippo_interactplot <- interact_plot(Total_hippocampus_model_kidkid_raw, pred = Childhood.StressZ, modx = Pos.Parenting.Youth.ReportZ,plot.points = TRUE,modx.values = c(-1,0,1),colors="Qual1",  line.thickness = 1.5,partial.residuals = TRUE,facet.modx = TRUE, modx.labels = c("-1 SD Pos. Parenting","Mean Pos. Parenting","+1 SD Pos. Parenting"))  + 
+  ggplot2::xlab("Childhood Stress") + 
+  ggplot2::ylab("Total Hippocampal Volumes")
+
+
+
+
+#ggplot2::ggsave("Hippo_InteractionPlot.jpeg",hippo_interactplot)
+
+
+```
+
+
+\newpage
+
+### Childhood Stress and Caregiver-Report Parenting on Total Hippocampal Volume
+
+```{r Total Hippo Kid Parent Total.Intracranial.Vol Model, eval = TRUE, include=TRUE, echo = FALSE}
+
+Total_hippocampus_model_kidparent <-lmer(TotalHippocampalVolume ~ Scan.Quality + 
+                                           Sex + Age + Barratt.Edu.Occ +
+                                           Total.Intracranial.Vol + 
+                                           Childhood.Stress * Pos.Parenting.Caregiver.Report + 
+                                           (1|Site), 
+                                         data=scaledat)
+
+summ(Total_hippocampus_model_kidparent, digits = getOption("jtools-digits", 4))
+
+#uncomment to calculate simple slopes
+#sim_slopes(Total_hippocampus_model_kidparent, 
+#           pred = Childhood.Stress, 
+#           modx = Pos.Parenting.Caregiver.Report)
+
+```
+
+```{r Total Hippo Kid Parent Total.Intracranial.Vol plot, include = FALSE}
+
+interact_plot(Total_hippocampus_model_kidparent, pred = Childhood.Stress, modx = Pos.Parenting.Caregiver.Report, interval = FALSE,colors="CUD Bright", line.thickness=1,vary.lty= FALSE, x.label =  "Negative Life Events: Child Report", y.label = "Total Hippocampal Volume", legend.main = "Positive Parenting (Caregiver Report)") + theme_nice(legend.pos = "right") 
+```
+
+```{r table comapring two hippocampal model output, include = FALSE}
+# Table comaparing two hippocampal models
+
+# can't include for kinitting bc weird symbols in random effects throw errors 
+
+preds <- c("Intercept", "Scan Quality", "Sex", "Age", "Socioeconomic Status", "Estimated Total Intracranial Volume", "Negative Life Events", "Pos. Parenting Youth-Report", "Negative Life Events * Pos. Parenting Youth-Report", "Pos. Parenting Caregiver-Report", "Negative Life Events * Pos. Parenting Caregiver-Report")
+
+dvs <- c("Total Hippocampal Volume: Child-Report Model", "Total Hippocampal Volume: Caregiver-Report Model")
+
+hippomods<- sjPlot::tab_model(Total_hippocampus_model_kidkid, Total_hippocampus_model_kidparent, title = "LMER output comparing Child-Report and Caregiver-Report Models",  pred.labels = preds, dv.labels = dvs, p.style = "numeric")
+
+hippomods
+```
+
+
+```{r hippomods, echo=FALSE, out.width = '90%'}
+
+knitr::include_graphics("/Users/isabellakahhale/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Isabella/Research/HippoParentingPaper/Submissions/PNAS_submission/Submission2_R&R/HIPPO.pdf")
+```
+
+**Table 2.** The left model output considers an interaction between youth-reported positive parenting and childhood stress on total hippocampal volumes. The right model output considers an interaction between caregiver-reported positive parenting and childhood stress on total hippocampal volumes. Both models included the same covariates (scan quality, sex, age, estimated total intracranial volume) and a random effect of imaging site.  
+
+\newpage
+
+### Testing Associations between Stress x Youth-Report Parenting and Stress x Caregiver-Report Parenting interaction terms
+
+#### Bivariate Correlation for Manually-Made Interaction Term
+&nbsp;
+
+Across models, we also tested for differences between any significant (and non-significant) interaction terms. This was done when comparing the interaction results for negative life events and child-reported positive parenting (in predicting structural volumes) to interaction results for negative life events and caregiver-reported positive parenting. For such comparisons, we used Williams's Test, a statistical comparison used when two correlation coefficients are calculated from a single sample, may be collinear, and not statistically independent (Dunn & Clark, 1971; Williams, 1971). This was done using the “psych” package in R (Revelle, 2022). 
+
+```{r model prep making interaction terms,  eval = TRUE, include = FALSE, echo=FALSE}
+dat <- dat %>% 
+  mutate(
+    kidkid_int_term = Childhood.Stress* Pos.Parenting.Youth.Report, 
+    kidparent_int_term = Childhood.Stress*Pos.Parenting.Caregiver.Report
+  )
+
+```
+
+
+```{r print hippocampal interaction terms, echo = FALSE}
+cor.test(dat$kidkid_int_term, dat$kidparent_int_term)
+```
+
+#### comparing betas from hippocampus models
+&nbsp;
+
+```{r hippocampus model comparisions, eval=TRUE, echo=FALSE}
+# compare beta from total hippocampus kid-kid model to total-parent model
+#accounting for the correlation between the correlations
+r.test(n = 482, 
+       Total_hippocampus_model_kidkid@beta[8], 
+       Total_hippocampus_model_kidparent@beta[8],
+       0.8635238)
+```
+
+
+\newpage
+
+## Stress and Positive Parenting on Amygdala Volume
+
+### Childhood Stress and Youth-Report Parenting on Total Amygdala
+
+```{r Total Amyg Kid Kid Total.Intracranial.Vol Model, eval=TRUE, include=TRUE, echo=FALSE}
+
+Total_amygdala_model_kidkid <-lmer(TotalAmygdalaVolume ~ Scan.Quality + 
+                                     Sex + Age + Barratt.Edu.Occ +
+                                     Total.Intracranial.Vol + 
+                                     Childhood.Stress * Pos.Parenting.Youth.Report + 
+                                     (1|Site), 
+                                   data=scaledat)
+
+summ(Total_amygdala_model_kidkid, getOption("jtools-digits", 4))
+
+#uncomment to calculate simple slopes
+#sim_slopes(Total_amygdala_model_kidkid, 
+#           pred = Childhood.Stress, 
+#           modx = Pos.Parenting.Youth.Report)
+
+
+```
+
+```{r Total Amyg Kid Kid Total.Intracranial.Vol Plot, include = FALSE}
+interact_plot(Total_amygdala_model_kidkid, pred = Childhood.Stress, modx = Pos.Parenting.Youth.Report, interval = FALSE,colors="CUD Bright", line.thickness=1, vary.lty= FALSE, x.label =  "Negative Life Events: Child Report", y.label = "Total Amygdala Volume", legend.main = "Positive Parenting (CR)") + theme_nice(legend.pos = "right") 
+```
+
+\newpage
+
+### Childhood Stress and Caregiver-Report Parenting on Total Amygdala
+
+```{r Total Amyg Kid Parent Total.Intracranial.Vol Model, eval=TRUE, include=TRUE, echo=FALSE}
+
+Total_amygdala_model_kidparent <-lmer(TotalAmygdalaVolume ~ Scan.Quality + 
+                                        Sex + Age + Barratt.Edu.Occ +
+                                        Total.Intracranial.Vol + 
+                                        Childhood.Stress * Pos.Parenting.Caregiver.Report + 
+                                        (1|Site), 
+                                      data=scaledat)
+
+summ(Total_amygdala_model_kidparent, getOption("jtools-digits", 4))
+
+#uncomment to calculate simple slopes
+#sim_slopes(Total_amygdala_model_kidparent, 
+#           pred = Childhood.Stress, 
+#           modx = Pos.Parenting.Caregiver.Report)
+
+```
+
+```{r Total Amyg Kid Parent Total.Intracranial.Vol plot, include = FALSE}
+interact_plot(Total_amygdala_model_kidparent, pred = Childhood.Stress, modx = Pos.Parenting.Caregiver.Report, interval = FALSE,colors="CUD Bright", line.thickness=1,vary.lty= FALSE, x.label =  "Negative Life Events: Child Report", y.label = "Total Amygdala Volume", legend.main = "Positive Parenting (PR)") + theme_nice(legend.pos = "right") 
+```
+
+```{r table comapring two amygdala model output, include = FALSE}
+
+# Table comaparing two amygdala models
+
+# can't include for kinitting bc weird symbols in random effects throw errors 
+
+preds <- c("Intercept", "Scan Quality", "Sex", "Age", "Socioeconomic Status", "Estimated Total Intracranial Volume", "Negative Life Events", "Pos. Parenting Youth-Report", "Negative Life Events * Pos. Parenting Youth-Report", "Pos. Parenting Caregiver-Report", "Negative Life Events * Pos. Parenting Caregiver-Report")
+
+dvs <- c("Total Amygdala Volume: Child-Report Model", "Total Amygdala Volume: Caregiver-Report Model")
+
+amygmods <- sjPlot::tab_model(Total_amygdala_model_kidkid, Total_amygdala_model_kidparent, title = "LMER output comparing Child-Report and Caregiver-Report Models",  pred.labels = preds, dv.labels = dvs)
+
+amygmods
+
+```
+
+
+```{r amygmods, echo=FALSE, out.width = '90%'}
+knitr::include_graphics("/Users/isabellakahhale/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Isabella/Research/HippoParentingPaper/Submissions/PNAS_submission/Submission2_R&R/AMYG.pdf")
+```
+
+**Table 3.** The left model output considers an interaction between youth-reported positive parenting and childhood stress on total amygdala volumes. The right model output considers an interaction between caregiver-reported positive parenting and childhood stress on total amygdala volumes. Both models included the same covariates (scan quality, sex, age, estimated total intracranial volume) and a random effect of imaging site.   
+
+\newpage
+
+### Testing Associations between Stress x Youth-Report Parenting and Stress x Caregiver-Report Parenting interaction terms
+
+#### manually comparing betas from amygdala models
+&nbsp;
+
+```{r amygdala model comparisions}
+# compare beta from total amyg kid-kid model to total-parent model
+# accounting for the correlation between the correlations
+r.test(n = 482, 
+       Total_amygdala_model_kidkid@beta[8], 
+       Total_amygdala_model_kidparent@beta[8],
+       0.8635238)
+```
+
+
+\newpage 
+
+# Supplemental Tables, Figures, & Models 
+
+# Methods 
+
+All code used for data cleaning and analysis, as well as a list of the HBN subjects used for this project, can be found on our study [GitHub](https://github.com/isabellakahhale/CorticoLimbicParenting).
+
+### Participants
+
+Data from 482 participants (39% female, 61% male) between the ages of 10-17 with T1-weighted structural images were downloaded from an ongoing research initiative, the Healthy Brain Network (HBN), launched by The Child Mind Institute in 2015. Participants with cognitive or behavioral challenges (e.g., being nonverbal, IQ<66), or with serious medical concerns were excluded from the HBN project. For sample characteristics, see Table 1. In terms of racial and ethnic identities, 241 participants identified as White (50%), 64 identified as Black/African American (13.3%), 45 identified as Hispanic (9.3%), 10 identified as Asian (2.1%), 7 identified as Indian (1.5%), 82 (17%) identified as Bi- or Mult-iracial, 9 identified as Other (1.9%; e.g., Middle Eastern), and 24 chose “unknown” or chose not to specify their race (5%). For additional information about the HBN sample, please see the HBN data-descriptor. Internal consistency estimates for each questionnaire measure appear in the Supplement and range from “good” to “excellent” (Chronbach’s alpha = 0.706-0.900).
+
+### Self-Report Measures 
+
+#### Negative Life Events Scale  
+&nbsp;
+
+We operationalized childhood stress by using the Negative Life Events Scale (NLES). Example items from the NLES include: “You have suffered from a serious physical illness, injury, or extreme pain”, “Your mom or dad was arrested or sent to jail”, and “His/her relatives said bad things about his/her mother or father.” Caregivers completed the same scale reporting on the negative life events their child may or may not have experienced. Previous work has found that caregiver and youth reports of negative life events are correlated (r = 0.49-0.72), although children tend to report a greater number of negative life events (Johnston, 2003). In this supplement, we consider analyses with both youth-reported NLES and caregiver-reported NLES scores in analyses. 
+
+Internal reliability estimates were  calculated both for the full NLE (Youth Report) and the "Average Upsetness" Score (Youth Report) we used as our main outcome variable, using the total sample of 485 observations. Chronbach's alpha values were within the "good" to "excellent" range, with Chronbach's $alpha$ for full NLE (Youth) =  0.9 and Chronbach's $alpha$ for "Average Upsetness" Score (Youth) =  0.766. 
+
+Internal reliability estimates were  calculated both for the full NLE (Parent Report) and the "Average Upsetness" Score (Parent Report) we used as our main outcome variable, using the total sample of 485 observations. Chronbach's alpha values were within the "acceptable" to "good" range, with Chronbach's $alpha$ for full NLE (Parent) =  0.87 and Chronbach's $alpha$ for "Average Upsetness" Score (Parent) =  0.706. 
+
+#### Alabama Parenting Questionnaire: Positive Parenting Subscale 
+&nbsp;
+
+The full APQ is a 42-item measure designed to assess dimensions of parenting (e.g., inconsistent discipline, corporal punishment, poor monitoring/supervision, positive parenting) strongly correlated with child behavior (Dadds et al., 2003; Shelton et al., 1996). The positive parenting subscale (APQ-PP) is the sum of 6 items (e.g., “ You let your child know when he/she are doing a good job with something”). The APQ subscales demonstrate favorable reliability and convergent validity in both youth (Essau et al., 2006; Liang et al., 2021). 
+Internal reliability estimates were calculated both for the full APQ (Youth Report) and the Positive Parenting Subscale (Youth Report) using the total sample of 485 observations. Chronbach's alpha values were within the "good" range, with Chronbach's $alpha$ for full APQ (Youth) =  0.875 and Chronbach's $alpha$ for Positive Parenting Subscale (Youth) =  0.815. 
+Internal reliability estimates were also calculated both for the full APQ (Parent Report) and the Positive Parenting Subscale (Parent Report) using the total sample of 485 observations. Chronbach's alpha values were within the "good" range, with Chronbach's $alpha$ for full APQ (Parent) =  0.855 and Chronbach's $alpha$ for Positive Parenting Subscale (Parent) =  0.843. 
+
+#### Youth Self-Report 
+&nbsp;
+
+We operationalized youth problem behavior in two ways, the first being through the Youth Self-Report Total Problems Raw Score. Studies of the YSR’s psychometric properties report discriminant and convergent validity among clinical, non-clinical, and diverse samples and acceptable reliability metrics (e.g., mean test-retest reliability = 0.79, mean internal consistency = 0.83) (Achenbach et al., 1995). We used the Total Problems Raw Score over the T-score due to literature advising Raw YSR scores to be used in statistical analyses. There is evidence that T scores truncate variability, and that conclusions based on these truncated scores are less reliable (Thurber & Sheehan 2012). The creators of the YSR also advocate for using raw scores in data analyses (Achenbach & Rescorla, 2001).
+
+Internal reliability estimates were  calculated for the Youth Self Report Total Raw score using the total sample of 485 observations. Chronbach's alpha values were well within the "excellent" range with Chronbach's $alpha$ for YSR Total score =  0.993.
+
+#### Strengths & Difficulties Questionnaire 
+&nbsp;
+
+We also considered an alternative measure of youth behavioral problems, the Strengths and Difficulties Questionnaire (SDQ). Specifically, we used SDQ Ttal Difficulties Score as an alternative, caregiver-reported operationalization. The SDQ is a well-validated and widely used instrument with acceptable psychometric properties (i.e., average test-retest reliability = 0.72; average internal consistency = 0.71, average inter-rater reliability = 0.39) (Goodman, 2001). In the HBN Battery, the 30-item questionnaire was completed by caregivers. The SDQ the following subscales and total score: 1) Emotional Symptoms, 2) Conduct Problems, 3) Hyperactivity/Inattention, 4) Peer Problems, 5) Prosocial Behavior, and 6) a Total Difficulties Score. For additional information on the SDQ, including psychometric properties and language translations, please see: <https://www.nctsn.org/measures/strengths-and-difficulties-questionnaire-parent-report>.
+
+Internal reliability estimates were  calculated for the Strength and Difficulties Questionnaire (SDQ) Total Difficulties score using the total sample of 485 observations. Chronbach's alpha values were well within the "good" range with Chronbach's $alpha$ for SDQ Total Difficulties score =  0.884. 
+
+#### Financial Support Questionnaire (FSQ)
+&nbsp;
+
+The Financial Support Questionnaire (FSQ) is a measured developed by the Child Mind Institute/Healthy Brain network and measures a variety of socioeconomic-related parameters, including employment status of primary caregiver (i.e., the caregiver at the study visit; FSQ_02; 0 = unemployed, 1 = employed) and employment status of the child's second caregiver (FSQ_03; 0 = unemployed, 1 = employed, 2 = no second primary caregiver). We recoded the second-caregiver employment variable (FSQ_03) so that a response of "no second primary caregiver" was given the value "0". We then summed values from primary caregiver employment and secondary caregiver employment for an overall variable representing parental employment (ie.., 0 = no caregiver employment, 1 = one caregiver is employed, 2 = two caregivers are employed). From the FSQ, we also considered Income (i.e., "what is your annual household income?") and recoded the categorical Income variable by multiplying each value by the midpoint of each income range bracket and then taking the natural log.
+
+#### Barratt Simplified Measure of Social Status (BSMSS) 
+&nbsp;
+
+The Barratt Simplified Measure of Social Status (BSMSS) is a measure of "Social Status" based on the work of Hollingshead (1957, 1975). This measure considers caregiver education level/attainment and occupational "prestige." In analyses considering socioeconomic status as a covariate, we used the Barratt Total score. We also constructed a composite variable that a) selects the higher of the two occupations and education levels between two caregivers (and considers the occupation and education level of the single caregiver, if applicable), b) mean-centered each variable (i.e., took the "z-score"), and c) derived the mean of the two. 
+
+#### Wechsler Intelligence Scale for Children-V (WISC-V)
+&nbsp;
+
+The Wechsler Intelligence Scale for Children-V (WISC-V) is a widely used  test that provides a global index of cognitive performance. The main variable we considered as a measure of intelligence the Full Scale Intelligence Quotient (FSIQ), or a numerical representation of a child's intellectual ability. 
+
+\newpage
+
+### MRI Site Information, Data Acquisition,  Data Processing, and Qualtity Metrics 
+
+The HBN project conducted MRI scans at 4 different sites: Citigroup Biomedical Imaging Center, the City University of New York, Rutgers University, and Staten Island. Eighty-two participants were scanned at the HBN Diagnostic Research Center in Staten Island (SI), 200 scanned at Rutgers University Brain Imaging Center (RU), 186 scanned at the CitiGroup Cornell Brain Imaging Center (CBIC), and 14 scanned at the City University of New York (CUNY). 
+
+Table S1 depicts the scanning parameters for each scanner. These scans were collected on different MRI scanners, specifically a 1.5 T Siemens Avanto scanner at SI, a Siemens 3T Tim Trio scanner at RU, Siemens 3T Prisma scanner at RU and CBIC, and a Siemens 3T Prisma scanner at CUNY. All structural MRI scans were 3D T1-weighted sequences and specific scan sequence parameters are included in the table below. As discussed in the manuscript, we used linear mixed effects models to account for (MRI-related) site variations given differences in MRI acquisition. Of note, all neuroimaging data used in this study are openly available for download with proper data usage agreement via the International Neuroimaging Data-sharing Initiative (fcon_1000.projects.nitrc.org/indi/cmi_healthy_brain_network/).
+
+```{r MRI Site Info, echo=FALSE, out.width = '100%'}
+knitr::include_graphics("/Users/isabellakahhale/OneDrive/Isabella/Research/HippoParentingPaper/MRI_Site_Info.pdf")
+```
+
+**Table S1.** Scanning parameters for each scanner used in the HBN Study. Data obtained from all four scanners are used in this project. 
+
+\clearpage
+
+#### MRI Data Processing 
+&nbsp;
+
+Freesurfer is a widely documented and freely available morphometric processing tool suite (http://surfer.nmr.mgh.harvard.edu/) The technical details of these procedures are described in prior publications (Dale et al., 1999; Fischl et al., n.d., 2002, 2004; Fischl, Sereno, & Dale, 1999; Fischl, Sereno, Tootell, et al., 1999). Briefly, this processing includes motion correction and intensity normalization of T1-weighted images, removal of non-brain tissue using a hybrid watershed/surface deformation procedure (Fischl et al., 2004), automated Talairach transformation, segmentation of the subcortical white matter and deep gray matter volumetric structures (including hippocampus, amygdala, caudate, putamen, ventricles), tessellation of the gray matter white matter boundary, and derivation of cortical surface area and cortical thickness. Of note, the "recon-all" pipeline with the default set of parameters (no flag options) was used and no manual editing was conducted. In keeping with our past work (Gilmore et al., 2021), Freesurfer outputs were checked via research staff for major errors, and via automated methods (see next section). After successful processing and quality assurance, we extracted volumes for our subcortical structures of interest– the hippocampus and amygdala. We calculated the total volume (for the hippocampus or amygdala) by summing volumes from the left and right hemispheres of each structure. Freesurfer was implemented using Brainlife.io, (brainlife.app.0, https://doi.org/10.25663/bl.app.0), which is a free, publicly funded, cloud-computing platform for reproducible neuroimaging pipelines and data sharing (Avesani et al., 2019), for additional information, visit http://brainlife.io/). 
+
+
+#### Image Quality Metrics
+&nbsp;
+
+We assessed image quality to exclude particularly high-motion scans and limit the impact of image quality on subcortical volume quantification. Past work from our group (e.g., Gilmore et al., 2021) has found that T1-weighted image quality is related to volumetric measures from commonly used morphometric tools suites (e.g., Freesurfer). We therefore assessed image quality to: 1) Exclude particularly high-motion scans; and 2) limit the impact of image quality on subcortical volume quantification. To assess MRI quality, we generated a quantitative metric (“CAT12 score”) using the Computational Anatomy Toolbox 12 (CAT12) (Gaser et al., 2016). This metric considers four summary measures of image quality: noise-to-contrast ratio, coefficient of joint variation, inhomogeneity-to-contrast ratio, and root-mean-squared voxel resolution. CAT12 normalizes and combines these measures using a kappa statistic-based framework. The score is a value from 0 to 1, with higher values indicating better image quality. Additional information is available at: http://www.neuro.uni-jena.de/cat/index.html#QA. 
+
+\clearpage
+
+## Statistical Analyses 
+
+Here, we elaborate on the analytic plan from our manuscript in further detail. We first fit ordinary least squares regression models to examine the interactions of stress and parenting in predicting youth behavioral problems. This involved entering the total scores from the YSR as the dependent variable, and sex, age, site, youth-reported negative life events, youth-reported positive parenting, and an interaction between youth-reported negative life events and youth-reported positive parenting as independent variables. All continuous variables were mean-centered.
+
+Next, to model relations between variables of interest and deal with potential variations in research sites, we fit linear mixed-effects models (LMEM) using the R package ‘lmer’ (Bates et al., 2015). For each brain region of interest (i.e., total hippocampal volume, total amygdala volume), we first fit a LMEM with a random effect of site, main effects of sex, age, estimated total intracranial volume, youth-reported negative life events, youth-reported positive parenting, and an interaction between negative life events and youth-reported positive parenting. This was motivated by our interest in youth perceptions of parenting behaviors. Notably, we also fit a second set of LMEMs for each brain region of interest again including a random effect of site, main effects of sex, age, eTIV, and youth-reported negative life events, this time including caregiver-reported positive parenting and an interaction between youth-reported negative life events and caregiver-reported positive parenting. This was to examine whether caregiver perceptions of positive parenting had different associations with brain volumes (compared to youth perceptions). All continuous variables were mean-centered for these analyses. For all significant interaction terms, we then conducted follow-up analyses of the simple slopes of subgroups (the mean of all individuals, +1 SD of the mean, and -1 SD of the mean) using the “interactions” R library (Long, 2019). R code and output for all analyses are included in this document.
+
+Across models, we also tested for differences between any significant (and non-significant) interaction terms. This was done when comparing the interaction results for youth-reported negative life events and youth-reported positive parenting (in predicting structural volumes) to interaction results for youth-reported negative life events and caregiver-reported positive parenting. For such comparisons, we used Williams's Test, a statistical comparison used when two correlation coefficients are calculated from a single sample, may be collinear, and not statistically independent (Dunn & Clark, 1971; Williams, 1971). This was done using the “psych” package in R (Revelle, 2022). 
+
+Additional sensitivity analyses (presented in the supplemental materials) examine both caregiver and youth reports of negative life events, positive parenting, and youth behavior within our main models; main effect models without interaction terms;  four different operationalization of socioeconomic status;  the contribution of psychopathology and cognitive ability in smaller overall samples (n = 226 and n = 320, respectively); questions of interest using General Additive Mixed Models (GAMMs) to account for non-linear age effects; models of stress with a non-linear quadratic term in LMEMs and GAMMs; total gray matter volume as an alternative brain scaling variable;  left and right hemispheres of brain regions separately; associations between hippocampal volumes and youth behavioral problems; and comparisons of key variables between the HBN imaging sample anad the total HBN sample.
+
+
+## Summary Statistics 
+
+### Descriptive Statistics Displayed by Site
+
+```{r table 2 by site, eval = FALSE, include = FALSE}
+ dat %>% 
+  mutate(new_grayvol = Total.Gray.Vol/1000,
+         Total = 1) %>% # doing this to display N for each site/type 
+  # select in order of how we want to appear in table
+  dplyr::select(c(Total, Age, Sex, Income_Cat, Pos.Parenting.Youth.Report, Pos.Parenting.Caregiver.Report, Childhood.Stress, Childhood.Stress.Cargiver.Report, Youth.Self.Report.Total, Strengths.Difficulties.Total, new_grayvol, Site)) %>% 
+  dplyr::rename(
+  "Age" = Age,
+  "Sex" = Sex,
+  "Income"= Income_Cat,
+  "Positive Parenting: Youth"  = Pos.Parenting.Youth.Report,
+  "Positive Parenting: Parent" = Pos.Parenting.Caregiver.Report, 
+  "Negative Life Events: Youth" = Childhood.Stress,
+  "Negative Life Events: Caregiver" = Childhood.Stress.Cargiver.Report,
+  "Behavioral Problems: Youth" = Youth.Self.Report.Total,
+  "Behavioral Problems: Caregiver" = Strengths.Difficulties.Total,
+  "Total Gray Matter Volume" = new_grayvol,
+  "Imaging Site" = Site
+  ) %>% 
+  tbl_summary(
+    by = "Imaging Site",
+    statistic = list(all_continuous() ~ "{mean} ({sd})",
+                     all_categorical() ~ "{n} ({p}%)",
+                     Total ~ "N = {N}"),
+    missing = "no") %>% 
+    add_overall(last = TRUE, col_label = "**Overall**") %>% 
+  modify_header(all_stat_cols(FALSE) ~ "**{level}**") %>%  # remove the n from header
+  #add_p() %>% 
+  as_gt() %>% 
+   tab_header(
+    title = "Table S2. Descriptive Statistics for Key Variables",
+    subtitle = "data reported by site") %>% 
+    gt::tab_source_note(gt::md("CBIC = Citigroup Biomedical Imaging Center, CUNY = The City University of New York, RU = Rutgers University, SI = Staten Island. Units of measurement are the following: Age (years), Positive Parenting: Youth/Caregiver (raw scores from the Alabama Parenting Questionnaire: Positive Parenting Subscale, Negative Life Events: Youth/Caregiver (Negative Life Events Scale, average upsetness score), Behavioral Problems: Youth (Youth Self Report Total Behavioral Problems Raw Score), Behavioral Problems: Caregiver (Strength and Difficulties Questionnaire Total Raw Score), and Total Gray Matter Volume (voxels divided by 1,000).")) %>% 
+  tab_footnote(
+    footnote = "Total gray matter volume values are divided by 1,000",
+    locations = cells_body(rows = 26)
+  )# %>% gt::gtsave(             # save table as image
+   #filename = "Table_S2.png"
+  #)
+
+```
+
+
+```{r table S2, echo=FALSE, out.width = '100%'}
+knitr::include_graphics("/Users/isabellakahhale/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Isabella/Research/HippoParentingPaper/Submissions/PNAS_submission/Submission2_R&R/Table_S2.png")
+```
+
+**Table S2.** Summary statistics for key study variables displayed by imaging site. 
+
+### Diagnostic Characteristics of HBN Subsample Displayed by Site
+
+```{r clean dx data, eval = TRUE, include = FALSE}
+psychopathologydat <- dat %>% 
+  filter(Any.Psychopathology != "3")
+
+psychopathologydat$Any.Psychopathology <- factor(psychopathologydat$Any.Psychopathology, 
+                 levels=c(1,2), 
+                 labels=c("No Dx","Yes Dx"))
+
+psychopathologydat$Dx.First.Category <- factor(psychopathologydat$Dx.First.Category,
+                 levels=c("Anxiety Disorders",
+                          "Depressive Disorders",
+                          "Disruptive",
+                          "Neurodevelopmental Disorders",
+                          "Obsessive Compulsive and Related Disorders",
+                          "Schizophrenia Spectrum and other Psychotic Disorders",
+                          "Trauma and Stressor Related Disorder",
+                          "Other Conditions That May Be a Focus of Clinical Attention",
+                          "No Diagnosis Given"),
+                 labels = c("Anxiety Disorders",
+                          "Depressive Disorders",
+                          "Disruptive Disorders",
+                          "Neurodevelopmental Disorders",
+                          "Obsessive Compulsive and Related Disorders",
+                          "Schizophrenia Spectrum and other Psychotic Disorders",
+                          "Trauma and Stressor Related Disorders",
+                          "Other Conditions That May Be a Focus of Clinical Attention",
+                          "No Diagnosis Given"))
+
+psychopathologydat$Dx.Second.Category <- factor(psychopathologydat$Dx.Second.Category,
+                 levels=c("Anxiety Disorders",
+                          "Bipolar and Related Disorders",
+                          "Depressive Disorders",
+                          "Disruptive",
+                          "Elimination Disorders",
+                          "Neurodevelopmental Disorders",
+                          "Obsessive Compulsive and Related Disorders",
+                          "Trauma and Stressor Related Disorder",
+                          ""),
+                 labels = c("Anxiety Disorders",
+                            "Bipolar and Related Disorders",
+                            "Depressive Disorders",
+                            "Disruptive Disorders",
+                            "Elimination Disorders",
+                            "Neurodevelopmental Disorders",
+                            "Obsessive Compulsive and Related Disorders",
+                            "Trauma and Stressor Related Disorders",
+                            "No Secondary Diagnosis"))
+
+psychopathologydat$Dx.Third.Category <- factor(psychopathologydat$Dx.Third.Category,
+                 levels=c("Anxiety Disorders",
+                          "Depressive Disorders",
+                          "Disruptive",
+                          "Elimination Disorders",
+                          "Feeding and Eating Disorders",
+                          "Neurodevelopmental Disorders",
+                          "Obsessive Compulsive and Related Disorders",
+                          "Other Conditions That May Be a Focus of Clinical Attention",
+                          "Somatic Symptom and Related Disorders",
+                          "Trauma and Stressor Related Disorder",
+                          ""),
+                 labels = c("Anxiety Disorders",
+                          "Depressive Disorders",
+                          "Disruptive Disorders",
+                          "Elimination Disorders",
+                          "Feeding and Eating Disorders",
+                          "Neurodevelopmental Disorders",
+                          "Obsessive Compulsive and Related Disorders",
+                          "Somatic Symptom and Related Disorders",
+                          "Trauma and Stressor Related Disorders",
+                          "Other Conditions That May Be a Focus of Clinical Attention",
+                          "No Tertiary Diagnosis"))
+```
+
+```{r table 3 dx data by site, eval = FALSE, include = FALSE}
+
+ psychopathologydat %>% 
+  mutate(Total = 1) %>% # doing this to display N for each site/type 
+  # select in order of how we want to appear in table
+  dplyr::select(c(Total, Age, Sex, Any.Psychopathology, Dx.First.Category,Dx.Second.Category, Site)) %>% 
+  dplyr::rename(
+  "Age" = Age,
+  "Sex" = Sex,
+  "Any DSM-5 Diagnosis" = Any.Psychopathology,
+  "First Diagnosis Category" = Dx.First.Category,
+  "Second Diagnosis Category" = Dx.Second.Category,
+ # "Third Diagnosis Category" = Dx.Third.Category,
+  "Imaging Site" = Site
+  ) %>% 
+  #tbl_summary(by = "site", missing = "no") %>% 
+  tbl_summary(
+    by = "Imaging Site",
+    statistic = list(all_continuous() ~ "{mean} ({sd})",
+                     all_categorical() ~ "{n} ({p}%)",
+                     Total ~ "N = {N}"),
+    missing = "no") %>% 
+  #  label = Sex ~ "Sex (0 = M, 1 = F)") %>% 
+    add_overall(last = TRUE, col_label = "**Overall**") %>% 
+  modify_header(all_stat_cols(FALSE) ~ "**{level}**") %>%  # remove the n from header
+  #add_p() %>% 
+  as_gt() %>% 
+   tab_header(
+    title = "Table S3. Psychopathology data for HBN participants",
+    subtitle = "data reported by site") %>% 
+    gt::tab_source_note(gt::md("CBIC = Citigroup Biomedical Imaging Center, RU = Rutgers University, SI = Staten Island.")) %>% 
+  #gt::gtsave(             # save table as image
+  # filename = "Table_S3.png"
+  #)
+
+```
+
+
+```{r table s3, include = TRUE, echo=FALSE, out.width = '90%'}
+knitr::include_graphics("/Users/isabellakahhale/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Isabella/Research/HippoParentingPaper/Submissions/PNAS_submission/Submission2_R&R/Table_S3.png")
+```
+
+**Table S3.** Psychopathology characteristics of a sub-sample of HBN participants displayed by imaging site. 
+
+
+\newpage
+
+### Correlation Table of Key Variables
+
+This correlation table can also be viewed on GitHub.
+
+```{r, eval= FALSE, include = FALSE, warnings = FALSE}
+#use this only to make the file that i then edit and re-read in as a png
+corrdat <- dat
+
+corrdat$Sex <- as.factor(corrdat$Sex)
+
+corrtable <- corrdat %>%  
+  select(Age, Income,
+         Childhood.Stress, Childhood.Stress.Cargiver.Report, 
+         Pos.Parenting.Youth.Report, Pos.Parenting.Caregiver.Report, 
+         Youth.Self.Report.Total, Strengths.Difficulties.Total,
+         TotalHippocampalVolume, TotalAmygdalaVolume,
+         Total.Intracranial.Vol, Scan.Quality) %>% 
+apa.cor.table(filename = "HBN_Corr_Table_RR") 
+
+# for some reason apa.cor.table doesn't play nice with rmd. save as png and print in another location
+```
+
+
+```{r corrtable, echo=FALSE, out.width = '100%'}
+knitr::include_graphics("/Users/isabellakahhale/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Isabella/Research/HippoParentingPaper/Submissions/PNAS_submission/Submission2_R&R/HBN_Cor_Table_RR.png")
+```
+
+**Table S4.** M and SD are used to represent mean and standard deviation, respectively. Values in square brackets indicate the 95% confidence interval for each correlation. The confidence interval is a plausible range of population correlations that could have caused the sample correlation. * indicates p < .05. ** indicates p < .01.
+
+
+\clearpage 
+
+### Figure S1: Youth Age Distributions by Sex
+
+```{r GGplot age and sex distrubtions, eval = FALSE, include = FALSE, warning = FALSE, message=FALSE}
+#use dat, not scaled version scaledat
+
+#make average age vars for each sex group
+mu <- ddply(dat, "Sex", summarise, grp.mean=mean(Age))
+
+#ageplot <- ggplot(dat, aes(x=Age, fill=Sex, color=Sex)) +
+  
+  ageplot <- ggplot(dat, aes(x=Age, fill = Sex, color = Sex)) +
+    geom_histogram(position="identity", alpha = 0.5) + 
+  geom_vline(data=mu, aes(xintercept=grp.mean, color=Sex), linetype="dashed") + 
+  scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9")) +
+  scale_fill_manual(values=c("#999999", "#E69F00", "#56B4E9"), labels=c('Male', 'Female')) +
+    guides(color = "none") +
+    labs(title = "Youth Age Distributions by Sex",
+         caption = "Note: dashed lines represent respective group means.") 
+
+ageplot <- ageplot+ theme_classic() + theme(plot.caption.position = "plot",
+                                   plot.caption = element_text(hjust = 0),
+                                   plot.title = element_text(hjust = 0.5))
+
+#great link
+#http://www.sthda.com/english/wiki/ggplot2-histogram-plot-quick-start-guide-r-software-and-data-visualization#basic-histogram-plots
+```
+
+```{r ageplot, warning = FALSE, message=FALSE, eval=FALSE, include = FALSE, echo = FALSE, out.extra='style"float::top"'}
+ageplot
+```
+
+
+```{r GGplot age and sex distrubtions discrete bins, eval = TRUE, include = FALSE, warning = FALSE, message=FALSE}
+#cut "Age" up into bins
+plotdat <- dat 
+  
+plotdat$Agecut <- cut(plotdat$Age, 
+                      breaks = c("10", "11", "12", "13", "14", "15", "16", "17", Inf),
+                      labels = c("10", "11", "12", "13", "14", "15", "16", "17")
+                      )
+
+#ageplot <- ggplot(dat, aes(x=Age, fill=Sex, color=Sex)) +
+
+ageplot <- ggplot(plotdat, aes(x=Agecut, fill = Sex, color = Sex)) +
+geom_histogram(stat = "count", position = "dodge", alpha = 0.5) +
+  scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9")) +
+  scale_fill_manual(values=c("#999999", "#E69F00", "#56B4E9"), labels=c('Male', 'Female')) +
+    guides(color = "none") +
+    labs(title = "Youth Age Distributions by Sex") + 
+  xlab("Age (years)")
+
+ageplot <- ageplot+ theme_classic() + theme(plot.caption.position = "plot",
+                                   plot.title = element_text(hjust = 0.5))
+
+
+#great link
+#http://www.sthda.com/english/wiki/ggplot2-histogram-plot-quick-start-guide-r-software-and-data-visualization#basic-histogram-plots
+```
+
+```{r ageplot discrete, warning = FALSE, message=FALSE, echo = FALSE}
+ageplot
+```
+
+**Figure S1.** Youth participant age distributions by biological sex.
+
+\newpage
+
+## Main Manuscript Models: Regression Diagnostics & Simpler Models without Interaction Terms
+
+### Regression Diagnostics for Main Manuscript Models
+
+We examined a variety of regression diagnostics including outlier values, QQ plots for studentized residuals, and leverage plots for our main models below (i.e., childhood stress and youth-report parenting predicting youth behavioral problems; childhood stress and youth-report parenting predicting total hippocampal volumes). 
+
+#### Regression Diagnostics: Childhood stress and youth-report parenting on youth-report behavioral problems 
+&nbsp;
+
+Examination of outlier values, QQ plots for studentized residuals, and leverage plots revealed two points that may be influential in the model considering the interaction between (youth report) stress and (youth report) parenting on (youth report) behavioral problems. 
+
+```{r ysr kid stress kid parenting behavioral model for outlier analysis, include = FALSE, eval = TRUE, echo = FALSE}
+
+YSR.Total_kidkid_model<-lm(Youth.Self.Report.Total ~ Sex + Age + 
+                             Barratt.Edu.Occ + 
+                             Site +
+                             Childhood.Stress*Pos.Parenting.Youth.Report, 
+                           data=scaledat)
+
+summ(YSR.Total_kidkid_model)
+```
+
+```{r ysr kid stress kid parenting behavioral model RUN outlier analysis, include = TRUE, eval = TRUE, echo = FALSE}
+outlierTest(YSR.Total_kidkid_model) # Bonferonni p-value for most extreme obs
+qqPlot(YSR.Total_kidkid_model, main="QQ Plot") #qq plot for studentized resid 
+leveragePlots(YSR.Total_kidkid_model) # leverage plots
+```
+
+```{r ysr kid stress kid parenting behavioral model REMOVE outliers, include = FALSE, eval = TRUE, echo = FALSE }
+outliers <- c(22, 317)
+#317 and 22 
+
+outlierdat <- scaledat[-outliers,]
+```
+
+```{r ysr kid stress kid parenting behavioral model without two points, include = TRUE, eval = TRUE, echo = FALSE}
+
+YSR.Total_kidkid_model<-lm(Youth.Self.Report.Total ~ Sex + Age + 
+                             Barratt.Edu.Occ + 
+                             Site +
+                             Childhood.Stress*Pos.Parenting.Youth.Report, 
+                           data=outlierdat)
+
+summ(YSR.Total_kidkid_model)
+```
+
+#### Regression Diagnostics: Childhood stress, youth-report parenting, and hippocampal volumes
+&nbsp;
+
+```{r Total Hippo Kid Stress Kid Parenting Model for outlier analysis, include = FALSE, eval = TRUE, echo = FALSE}
+
+Total_hippocampus_model_kidkid <-lmer(TotalHippocampalVolume ~ Scan.Quality + 
+                                        Sex + Age + Barratt.Edu.Occ +
+                                        Total.Intracranial.Vol + 
+                                        Childhood.Stress * Pos.Parenting.Youth.Report + 
+                                        (1|Site), 
+                                      data=scaledat)
+
+summ(Total_hippocampus_model_kidkid)
+```
+
+```{r Total Hippo Kid Stress Kid Parenting Model RUN outlier analysis, include = TRUE, eval = TRUE, echo = FALSE}
+outlierTest(Total_hippocampus_model_kidkid) # Bonferonni p-value for most extreme obs
+plot(Total_hippocampus_model_kidkid)
+qqnorm(resid(Total_hippocampus_model_kidkid))
+```
+
+```{r Total Hippo Kid Stress Kid Parenting Model REMOVE outliers, include = TRUE, eval = TRUE, echo = FALSE }
+outliers <- c(411)
+outlierdat <- scaledat[-outliers,]
+```
+
+\newpage
+
+```{r Total Hippo Kid Stress Kid Parenting Model without one point, include = TRUE, eval = TRUE, echo = FALSE}
+
+Total_hippocampus_model_kidkid <-lmer(TotalHippocampalVolume ~ Scan.Quality + 
+                                        Sex + Age + Barratt.Edu.Occ +
+                                        Total.Intracranial.Vol + 
+                                        Childhood.Stress * Pos.Parenting.Youth.Report + 
+                                        (1|Site), 
+                                      data=outlierdat)
+
+summ(Total_hippocampus_model_kidkid)
+```
+
+\clearpage 
+
+\newpage 
+
+### Main Manuscript Models without Interaction Term
+
+#### Childhood Stress and Youth-Report Parenting on Youth-Report Behavioral Problems 
+&nbsp;
+
+```{r ysr kid stress kid parenting behavioral model no int, include = TRUE, eval = TRUE, echo = FALSE}
+
+YSR.Total_kidkid_model<-lm(Youth.Self.Report.Total ~ Sex + Age + 
+                             Barratt.Edu.Occ + 
+                             Site +
+                             Childhood.Stress + Pos.Parenting.Youth.Report, 
+                           data=scaledat)
+
+summ(YSR.Total_kidkid_model)
+```
+
+\newpage 
+
+#### Childhood Stress and Youth-Report Parenting on Total Hippocampal Volume
+&nbsp;
+
+```{r Total Hippo Kid Kid Total.Intracranial.Vol Model no int, include = TRUE, eval = TRUE, echo = FALSE}
+Total_hippocampus_model_kidkid <-lmer(TotalHippocampalVolume ~ Scan.Quality + 
+                                        Sex + Age + Barratt.Edu.Occ +
+                                        Total.Intracranial.Vol + 
+                                        Childhood.Stress + Pos.Parenting.Youth.Report + 
+                                        (1|Site), 
+                                      data=scaledat)
+
+summ(Total_hippocampus_model_kidkid)
+```
+
+\newpage 
+
+#### Childhood Stress and Caregiver-Report Parenting on Total Hippocampal Volume
+&nbsp;
+
+```{r Total Hippo Kid Parent Total.Intracranial.Vol Model no int, eval = TRUE, include=TRUE, echo = FALSE}
+Total_hippocampus_model_kidparent <-lmer(TotalHippocampalVolume ~ Scan.Quality + 
+                                           Sex + Age + Barratt.Edu.Occ +
+                                           Total.Intracranial.Vol + 
+                                           Childhood.Stress + Pos.Parenting.Caregiver.Report + 
+                                           (1|Site), 
+                                         data=scaledat)
+
+summ(Total_hippocampus_model_kidparent, digits = getOption("jtools-digits", 3))
+```
+
+\newpage 
+
+#### Childhood Stress and Youth-Report Parenting on Total Amygdala
+&nbsp;
+
+```{r Total Amyg Kid Kid Total.Intracranial.Vol Model no int, eval=TRUE, include=TRUE, echo=FALSE}
+
+Total_amygdala_model_kidkid <-lmer(TotalAmygdalaVolume ~ Scan.Quality + 
+                                     Sex + Age + Barratt.Edu.Occ +
+                                     Total.Intracranial.Vol + 
+                                     Childhood.Stress + Pos.Parenting.Youth.Report + 
+                                     (1|Site), 
+                                   data=scaledat)
+
+summ(Total_amygdala_model_kidkid)
+```
+
+\newpage 
+
+#### Childhood Stress and Caregiver-Report Parenting on Total Amygdala
+&nbsp;
+
+```{r Total Amyg Kid Parent Total.Intracranial.Vol Model no int, eval=TRUE, include=TRUE, echo=FALSE}
+
+Total_amygdala_model_kidparent <-lmer(TotalAmygdalaVolume ~ Scan.Quality + 
+                                        Sex + Age + Barratt.Edu.Occ +
+                                        Total.Intracranial.Vol + 
+                                        Childhood.Stress + Pos.Parenting.Caregiver.Report + 
+                                        (1|Site), 
+                                      data=scaledat)
+
+summ(Total_amygdala_model_kidparent)
+```
+
+\newpage 
+
+## Examining Associations Between Youth Behavioral Problems, Stress, Parenting, and an Interaction of Stress X Parenting
+
+### Caregiver-Report of Youth Behavioral Problems
+
+In our main manuscript, we detail results of a model considering associations between youth behavioral problems (from the Youth-Self Report [YSR] Total Score) in relation to childhood stress, parenting (youth-report), and the interaction of stress and parenting. This was due to our interest in centering youth perspectives in our research. The results of this model suggested a potential buffering effect of positive parenting within the association between stress and behavioral problems. Put another way. there is no relation between stress and behavioral problems, for children exposed to the highest levels of positive parenting.
+
+####  Associations between Youth-Report Stress and Youth-Report Parenting on SDQ Total Score
+&nbsp;
+
+The results of this model suggest a significant interaction of childhood stress and youth-reported positive parenting on caregiver-reported youth problems (i.e., SDQ total difficulties score). This replication of our above result (i.e., with the YSR as an outcome variable instead of the SDQ) underscores that there is an interaction between childhood stress and youth-reported positive parenting on youth behavioral problems regardless of whether the youth or caregiver is the informant on youth behavioral problems.
+
+```{r SDQ youth Stress youth Parenting, warning = FALSE, eval= TRUE, include = TRUE, echo = FALSE}
+sdq_youthyouth_model <- lm(Strengths.Difficulties.Total ~ Sex +
+                            Age + Barratt.Edu.Occ + Site + 
+                           Childhood.Stress * Pos.Parenting.Youth.Report, 
+                            data = scaledat)
+
+summ(sdq_youthyouth_model)
+
+#uncomment to run simple slopes
+#simple_slopes(sdq_youthyouth_model)
+```
+
+
+\newpage 
+
+####  Associations between Youth-Report Stress and Caregiver-Report Parenting on SDQ Total Score
+&nbsp;
+
+This next model investigated the interaction of childhood stress and caregiver-reported positive parenting on caregiver-reported youth problems (i.e., SDQ total difficulties score). Consistent with previous results, there is no significant interaction between childhood stress and caregiver-reported positive parenting on behavioral problems.
+
+```{r SDQ youth Stress Caregiver Parenting, eval= TRUE, include = TRUE, echo = FALSE}
+sdq_youthcaregiver_model <- lm(Strengths.Difficulties.Total ~ Sex +
+                                Age + Barratt.Edu.Occ + Site +
+                                 Childhood.Stress * Pos.Parenting.Caregiver.Report, 
+                                data = scaledat)
+
+summ(sdq_youthcaregiver_model)
+```
+
+\clearpage
+
+\newpage
+
+## Socioeconomic Status (SES) Variables
+
+Most studies to date exploring stress and parenting on youth outcomes have operationalized stress as socioeconomic disadvantage, while less research has focused on exposure to stressful and negative life events. In order to test the unique contribution of actual experience of stress on youth behavioral problems and corticolimbic structure and the moderating effect of positive parenting, we consider below various operationalizations of SES as covariates in our models and correlations with study variables. 
+
+### Correlations between Stress and Multiple Operationalizations of SES
+
+We considered correlations between Childhood Stress (youth-reported Negative Life Events) and four different operationalizations of socioeconomic status, including a) a categorical variable representing parent employment status (Parental.Employment), b) a log-transformed income variable (Income), c) a variable representing the highest parental education achievement and occupational status from the Barratt Simplified Measure of Social Status (BSMSS) (Barratt.Edu.Occ), and d) the Barratt measure total "social status" score (Barratt.Total). 
+
+As reflected in the output below, the correlations between stress and SES variables are quite low (ranging from r  = -0.0085 to -0.0314) and non-significant at the p < 0.05 level.
+
+```{r corrs between SES and stress, eval = TRUE, include = TRUE}
+# corr between FSQ categorical parental employment and stress
+cor.test(as.numeric(dat$Childhood.Stress), dat$Parental.Employment, 
+         use = "complete.obs")
+
+# corr between FSQ income variable and stress
+cor.test(as.numeric(dat$Childhood.Stress), as.numeric(dat$Income), 
+         use = "complete.obs")
+
+# corr between Barratt Z score mean parental education/ occupation and stress
+cor.test(as.numeric(dat$Childhood.Stress), as.numeric(dat$Barratt.Edu.Occ), 
+         use = "complete.obs")
+
+# corr between Barratt total and stress
+cor.test(as.numeric(dat$Childhood.Stress), as.numeric(dat$Barratt.Total), 
+         use = "complete.obs")
+```
+
+### Correlations between Parenting and Multiple Operationalizations of SES
+
+We considered correlations between both a) youth-report Positive Parenting and b) caregiver-report Positive Parenting and each of the 4 SES variables described below.  
+
+All but one of these 8 correlations were very low and non-significant at the p < 0.05 level, with the exception of the correlation between caregiver-report Positive Parenting and Income (r = -0.1182, p = 0.02486). 
+
+```{r SES and parenting, eval = TRUE, include=TRUE}
+# correlations between FSQ categorical parental employment and child report parenting
+cor.test(as.numeric(dat$Pos.Parenting.Youth.Report), 
+         dat$Parental.Employment, use = "complete.obs")
+
+# correlations between FSQ categorical parental employment and caregiver-report parenting
+cor.test(as.numeric(dat$Pos.Parenting.Caregiver.Report), 
+         dat$Parental.Employment, use = "complete.obs")
+
+# correlations between FSQ income variable and child-report parenting
+cor.test(as.numeric(dat$Pos.Parenting.Youth.Report), 
+         as.numeric(dat$Income), use = "complete.obs")
+
+# correlations between FSQ income variable and caregiver-report parenting
+cor.test(as.numeric(dat$Pos.Parenting.Caregiver.Report), 
+         as.numeric(dat$Income), use = "complete.obs")
+
+# correlations between Barratt Z score mean parental education/ occupation and
+#child-report parenting
+cor.test(as.numeric(dat$Pos.Parenting.Youth.Report), 
+         as.numeric(dat$Barratt.Edu.Occ), use = "complete.obs")
+
+# correlations between Barratt Z score mean parental education/ occupation and 
+#caregiver-report parenting
+cor.test(as.numeric(dat$Pos.Parenting.Caregiver.Report), 
+         as.numeric(dat$Barratt.Edu.Occ), use = "complete.obs")
+
+# correlations between Barratt total and child-report parenting 
+cor.test(as.numeric(dat$Pos.Parenting.Youth.Report), 
+         as.numeric(dat$Barratt.Total), use = "complete.obs")
+# correlations between Barratt total and child-report parenting 
+cor.test(as.numeric(dat$Pos.Parenting.Caregiver.Report), 
+         as.numeric(dat$Barratt.Total), use = "complete.obs")
+```
+
+### Sensitivity Analysis with Socioeconomic Status (SES) as an Additional Variable in Main Models
+
+#### Childhood Stress, Youth-Report Parenting, and SES on Youth-Report Behavioral Problems
+&nbsp;
+
+We ran models calculating the association between Childhood stress and youth-report parenting on  youth-report behavioral problems using 4 different operationalizations of socioeconomic status: a) a categorical variable representing parent employment status (Parental.Employment), b) a log-transformed income variable (Income), c) a variable representing the highest parental education achievement and occupational status from the Barratt Simplified Measure of Social Status (BSMSS) (Barratt.Edu.Occ), and d) the Barratt measure total "social status" score (Barratt.Total). 
+
+Analyses using the parent employment status variable (Parental.Employment) led to a reduction in sample size from n = 410 to n = 358. Analyses using the income variable (income) led to a reduction in sample size from n = 410 to n = 313.
+
+Analyses using the variables from the Barratt measure (ie., a variable representing the highest level of parental education attainment and occupation status [Barratt.Edu.Occ] and a variable representing overall social status [Barratt.Total]) preserved our sample size the most, with a reduction in sample from n = 410 to n = 404.  In order to preserve as large a sample size as possible, we used the Barratt.Edu.Occ variable as a covariate in all our main analyses.
+
+\clearpage
+
+\newpage
+
+#### Stress * Youth-Report Parenting on Youth Behavioral Problems with Categorical Parental Employment as SES Variable 
+&nbsp;
+
+```{r ysr kid stress kid parenting behavioral model ONE with SES, include = TRUE, eval = TRUE, echo = FALSE}
+YSR.Total_kidkid_model_ses1<-lm(Youth.Self.Report.Total ~ Sex + Age + Site +
+                                  Parental.Employment +
+                                  Childhood.Stress*Pos.Parenting.Youth.Report, 
+                           data=scaledat)
+
+summ(YSR.Total_kidkid_model_ses1)
+```
+
+\newpage
+
+#### Stress * Youth-Report Parenting on Youth Behavioral Problems with Income as SES Variable 
+&nbsp;
+
+```{r ysr kid stress kid parenting behavioral model TWO with SES, include = TRUE, eval = TRUE, echo = FALSE}
+ YSR.Total_kidkid_model_ses2<-lm(Youth.Self.Report.Total ~ Sex + Age + Site +
+                                  Income +
+                                  Childhood.Stress*Pos.Parenting.Youth.Report, 
+                           data=scaledat)
+
+summ(YSR.Total_kidkid_model_ses2)
+```
+
+\newpage
+
+#### Stress * Youth-Report Parenting on Youth Behavioral Problems with Highest Parental Education & Occupational Status as SES Variable 
+&nbsp;
+
+```{r ysr kid stress kid parenting behavioral model THREE with SES, include = TRUE, eval = TRUE, echo = FALSE}
+YSR.Total_kidkid_model_ses3<-lm(Youth.Self.Report.Total ~ Sex + Age + Site +
+                                  Barratt.Edu.Occ +
+                                  Childhood.Stress*Pos.Parenting.Youth.Report, 
+                           data=scaledat)
+
+summ(YSR.Total_kidkid_model_ses3)
+```
+
+\newpage
+
+#### Stress * Youth-Report Parenting on Youth Behavioral Problems with Barratt Measure Social Status as SES Variable 
+&nbsp;
+
+```{r ysr kid stress kid parenting behavioral model FOUR with SES, include = TRUE, eval = TRUE, echo = FALSE}
+YSR.Total_kidkid_model_ses4<-lm(Youth.Self.Report.Total ~ Sex + Age + Site +
+                                  Barratt.Total +
+                                  Childhood.Stress*Pos.Parenting.Youth.Report, 
+                           data=scaledat)
+
+summ(YSR.Total_kidkid_model_ses4)
+```
+
+\clearpage
+\newpage 
+
+#### Childhood Stress, Youth-Report Parenting, and SES on Total Hippocampal Volume
+&nbsp;
+
+Given the varying sample sizes for the different operationalizations, it is difficult to draw across-the-board conculsions regaring the role of socioeconomic status within our models exploring the interactive effect between childhood stress and positive parenting on youth behavioral problems and total hippocampal volumes. However, in the analyses that preserve the largest sample sizes (i.e., in considering SES variables from the Barratt measure) it appears that socioeconomic status does not explain the significant associations between chilhood stress, youth-reported positive parenting, and smaller hippocampal volumes. 
+
+#### Stress * Youth-Report Parenting on Total Hippocampal Volume with Categorical Parental Employment as SES Variable 
+
+&nbsp;
+
+```{r ysr kid stress kid parenting hippo model ONE with SES, include = TRUE, eval = TRUE, echo = FALSE}
+Hippo.Total_kidkid_model_ses1<- lmer(TotalHippocampalVolume ~ Scan.Quality +
+                                       Sex + Age+ Total.Gray.Vol + 
+                                      Parental.Employment +
+                                       Childhood.Stress * Pos.Parenting.Youth.Report + 
+                                       (1|Site), 
+                                         data=scaledat)
+
+summ(Hippo.Total_kidkid_model_ses1)
+```
+
+\newpage
+
+#### Stress * Youth-Report Parenting on Total Hippocampal Volume with Income as SES Variable 
+&nbsp;
+
+```{r ysr kid stress kid parenting hippo model TWO with SES, include = TRUE, eval = TRUE, echo = FALSE}
+ Hippo.Total_kidkid_model_ses2<-lmer(TotalHippocampalVolume ~ Scan.Quality +
+                                       Sex + Age+ Total.Gray.Vol + 
+                                       Income + 
+                                       Childhood.Stress * Pos.Parenting.Youth.Report + 
+                                       (1|Site), 
+                                         data=scaledat)
+
+summ(Hippo.Total_kidkid_model_ses2)
+```
+
+\newpage
+
+#### Stress * Youth-Report Parenting on Total Hippocampal Volume with Highest Parental Education & Occupational Status as SES Variable 
+&nbsp;
+
+```{r ysr kid stress kid parenting hippo model THREE with SES, include = TRUE, eval = TRUE, echo = FALSE}
+ Hippo.Total_kidkid_model_ses3<-lmer(TotalHippocampalVolume ~ Scan.Quality +
+                                       Sex + Age+ Total.Gray.Vol + 
+                                     Barratt.Edu.Occ + 
+                                       Childhood.Stress * Pos.Parenting.Youth.Report + 
+                                       (1|Site), 
+                                         data=scaledat)
+
+summ(Hippo.Total_kidkid_model_ses3)
+```
+
+\newpage
+
+#### Stress * Youth-Report Parenting on Total Hippocampal Volume with Barratt Measure Social Status as SES Variable 
+&nbsp;
+
+```{r ysr kid stress kid parenting hippo model FOUR with SES, include = TRUE, eval = TRUE, echo = FALSE}
+Hippo.Total_kidkid_model_ses4<-lmer(TotalHippocampalVolume ~ Scan.Quality +
+                                       Sex + Age+ Total.Gray.Vol + 
+                                     Barratt.Total + 
+                                       Childhood.Stress * Pos.Parenting.Youth.Report + 
+                                       (1|Site), 
+                                         data=scaledat)
+
+
+summ(Hippo.Total_kidkid_model_ses4)
+```
+
+
+\clearpage
+
+\newpage
+
+## Cognitive Ability as a Covariate in Main Analyses 
+
+### Correlations between stress and IQ 
+
+We used the WISC  Full Scale Intelligence Quotient (FSIQ) score as an index of cognitive ability. We first considered the correlation between FSIQ and stress, finding that the two constructs were not correlated. 
+
+
+```{r corrs between IQ and stress, eval = TRUE, include = TRUE, echo=FALSE}
+dat$WISC.FSIQ<- as.numeric(dat$WISC.FSIQ)
+cor.test(as.numeric(dat$Childhood.Stress), dat$WISC.FSIQ, use = "complete.obs")
+```
+
+\newpage 
+
+### IQ as a covariate in main analyses
+
+#### Childhood Stress and Youth-Report Parenting on Youth-Report Behavioral Problems with IQ
+&nbsp;
+
+The inclusion of WISC IQ score leads to an over 20% reduction in our sample size (from n = 410 to n = 320). We therefore chose not to include IQ as a covariate in our main analyses. 
+
+```{r ysr kid stress kid parenting behavioral model with IQ, include = TRUE, eval = TRUE, echo = FALSE}
+scaledat$WISC.FSIQ <- as.numeric(scaledat$WISC.FSIQ)
+scaledat$WISC.FSIQ.Sum <- as.numeric(scaledat$WISC.FSIQ.Sum)
+
+YSR.Total_kidkid_model_IQ<-lm(Youth.Self.Report.Total ~ Sex + Age + Site +
+                                  WISC.FSIQ +
+                                  Childhood.Stress*Pos.Parenting.Youth.Report, 
+                           data=scaledat)
+
+summ(YSR.Total_kidkid_model_IQ)
+```
+
+\newpage 
+
+#### Childhood Stress and Youth-Report Parenting with IQ on Total Hippocampal Volume
+&nbsp;
+
+```{r Total Hippo Kid Kid Total.Intracranial.Vol Model with IQ, include = TRUE, eval = TRUE, echo = FALSE}
+Total_hippocampus_model_kidkid_IQ<-lmer(TotalHippocampalVolume ~ Scan.Quality + 
+                                        Sex + Age+ Total.Intracranial.Vol +
+                                          WISC.FSIQ + 
+                                        Childhood.Stress*Pos.Parenting.Youth.Report + 
+                                        (1|Site), 
+                                      data=scaledat)
+
+summ(Total_hippocampus_model_kidkid_IQ)
+
+# uncomment to calculate simple slopes 
+
+#sim_slopes(Total_hippocampus_model_kidkid_IQ, 
+#           pred = Childhood.Stress, 
+#           modx = Pos.Parenting.Youth.Report)
+
+```
+
+\newpage 
+
+#### Childhood Stress and Caregiver-Report Parenting with IQ on Total Hippocampal Volume
+&nbsp;
+
+```{r Total Hippo Kid Parent Total.Intracranial.Vol Model with IQ, include = TRUE, eval = TRUE, echo = FALSE}
+
+Total_hippocampus_model_kidparent_IQ<-lmer(TotalHippocampalVolume ~ Scan.Quality + 
+                                        Sex + Age + Total.Intracranial.Vol +
+                                          WISC.FSIQ + 
+                                        Childhood.Stress*Pos.Parenting.Caregiver.Report + 
+                                        (1|Site), 
+                                      data=scaledat)
+
+summ(Total_hippocampus_model_kidparent_IQ)
+
+# uncomment to calculate simple slopes 
+
+#sim_slopes(Total_hippocampus_model_kidparent_IQ, 
+#           pred = Childhood.Stress, 
+#           modx = Pos.Parenting.Caregiver.Report)
+```
+
+\clearpage
+
+\newpage
+
+## Sensitivity Analysis with Psychopathology Diagnosis as an Additional Variable in Main Models
+
+#### Youth-Report Parenting, Stress, and Psychopathology on Total Hippocampal Volume (LMEM)
+&nbsp;
+
+Given past research noting connections between psychopathology and hippocampal neurobiology, we constructed additional models that included a measure of psychopathology in our models examining stress, parenting, and the interaction of stress and parenting. We used a binary indicator of the presence (or absence) of psychopathology derived from the Kiddie Schedule for Affective Disorders and Schizophrenia (KSADS) Diagnostic Interview. This variable was originally coded as 1= "No", 2= "Yes", 3= "dropped out of study before diagnosis was given". We recoded this variable to exclude datapoints with a value of 3 for the purposes of this analysis. We named this binary diagnosis variable *Any.Psychopathology* as presented in the following model.
+
+This binary diagnosis variable (i.e., *Any.Psychopathology*) was added to our main model predicting total hippocampal volume from an interaction between stress and youth-reported positive parenting, along with our main covariate set. Upon including the *Any.Psychopathology* variable, the interaction between childhood stress and youth-reported positive parenting is no longer significant. Of note, there is a *large* drop in sample size for these analyses (n=226 vs. n=400-480 in other models) due to available data; this drop may explain non-significant p-values, rather than a lack of associations between variables.
+
+\newpage
+
+```{r psychopathology models, eval= TRUE, include = TRUE, echo = FALSE, warning=FALSE}
+Total_hippocampus_model_kidkid_dx <-lmer(TotalHippocampalVolume ~ Scan.Quality + 
+                                           Sex + Age + Total.Intracranial.Vol + 
+                                           Childhood.Stress * Pos.Parenting.Youth.Report + 
+                                           Any.Psychopathology + (1|Site), 
+                                         data=psychopathologydat)
+
+summ(Total_hippocampus_model_kidkid_dx)
+
+```
+
+\clearpage
+
+## Probing Questions of Interest Using Generalized Additive Mixed Models (GAMMs) to Account for Potential Non-Linear Age Effects
+
+#### Youth-Report Parenting and Stress on Total Hippocampal Volume (GAMM)
+&nbsp;
+
+In the main manuscript, we used linear mixed effects models to examine relations of interest. However, there may be non-linear effects of age on brain volume. To model these potential patterns of change, we fit Generalized Additive Mixed Models (GAMMs) with package 'gamm4', "Generalized Additive Mixed Models using 'mgcv' and 'lme4'" (v 0.2-6, Woods & Scheipl, 2020). GAMMs allow for modeling of non-linear data by incorporating smooth functions, or splines, and accounting for random effects (e.g., study site) using mixed effects models. This is particularly critical to flexibly capture linear or nonlinear age effects and is in keeping with recent cutting edge work in developmental cognitive neuroscience (Larsen et al., 2020).
+
+For each brain region of interest (i.e., total hippocampal volume, total amygdala volume), we first fit a GAMM with a random effect of site, a smooth (non-linear) term for age, and main effects of sex, estimated total intracranial volume (*Total.Intracranial.Vol*), negative life events, youth-reported positive parenting, and an interaction between negative life events and youth-reported positive parenting. This was motivated by our interest in youth perceptions of parenting behaviors. Notably, we also fit a second set of GAMMs for each brain region of interest again including a random effect of site, a smooth term for age, and main effects of sex, total intracranial volume, and Youth-Reported negative life events, this time including caregiver-reported positive parenting and an interaction between youth-reported negative life events and caregiver-reported positive parenting. This was to examine the importance of youth (as opposed to caregiver) reports of parenting.
+The results of this GAMM are consistent with the LMEM reported in the manuscript; namely, that there is a significant interaction between stress and youth-reported positive parenting on total hippocampal volume.
+
+
+```{r total hippocampus kid kid gamm, eval= TRUE, include = TRUE, echo = FALSE}
+total_hippocampus_gamm_model <-gamm4(TotalHippocampalVolume ~ Scan.Quality + 
+                                       Sex + s(Age)+ Total.Intracranial.Vol + 
+                                       Childhood.Stress * Pos.Parenting.Youth.Report,
+                                     random=~(1|Site), 
+                                     data=scaledat)
+
+```
+
+#### Youth-Report Parenting and Stress on Total Hippocampal Volume GAMM Linear Mixed Effects Model Output
+&nbsp;
+
+```{r total hippocampus kid kid gamm mer output, eval= TRUE, include = TRUE, echo = FALSE}
+summary(total_hippocampus_gamm_model$mer)
+```
+
+
+#### Youth-Report Parenting and Stress on Total Hippocampal Volume GAMM General Additive Model Output
+&nbsp;
+
+```{r total hippocampus kid kid gamm gam output, eval= TRUE, include = TRUE, echo = FALSE}
+summary(total_hippocampus_gamm_model$gam)
+
+```
+
+
+\newpage
+
+#### Caregiver-Report Parenting and Stress on Total Hippocampal Volume (GAMM)
+&nbsp;
+
+The results of this GAMM are again consistent with the LMEM reported in the manuscript; namely, that using caregiver-reported positive parenting (instead of youth-reported positive parenting) results in a non-significant interaction between stress and positive parenting on total hippocampal volume. This supports our claim that centering youth-reports of parenting behaviors are important when considering the effects of stress and hippocampal development.
+
+```{r total hippocampus kid parent gamm, eval= TRUE, include = TRUE, echo = FALSE}
+total_hippocampus_gamm_model <-gamm4(TotalHippocampalVolume ~ Scan.Quality +
+                                       Sex + s(Age)+ Total.Intracranial.Vol + 
+                                       Childhood.Stress * Pos.Parenting.Caregiver.Report,
+                                     random=~(1|Site), 
+                                     data=scaledat)
+
+
+
+```
+
+#### Caregiver-Report Parenting and Stress on Total Hippocampal Volume GAMM Linear Mixed Effects Model Output
+&nbsp;
+
+```{r total hippocampus kid parent gamm MER output, eval= TRUE, include = TRUE, echo = FALSE}
+summary(total_hippocampus_gamm_model$mer)
+```
+
+#### Caregiver-Report Parenting and Stress on Total Hippocampal Volume GAMM General Additive Model Output
+&nbsp;
+
+```{r total hippocampus kid parent gamm GAM output, eval= TRUE, include = TRUE, echo = FALSE}
+summary(total_hippocampus_gamm_model$gam)
+
+```
+
+\newpage
+
+#### Youth-Report Parenting and Stress on Total Amygdala Volume (GAMM)
+&nbsp;
+
+The results of the next two GAMMs are consistent with the LMEs invesgiating total amygdala volume. Neither youth-reported positive parenting nor caregiver-reported positive parenting significantly interact with stress to predict total amygdala volume.
+
+```{r total amyg kid kid gamm, echo = FALSE}
+total_amygdala_gamm_model <-gamm4(TotalAmygdalaVolume ~ Scan.Quality + 
+                                    Sex + s(Age)+ Total.Intracranial.Vol + 
+                                    Childhood.Stress * Pos.Parenting.Youth.Report,
+                                  random=~(1|Site), 
+                                  data=scaledat)
+
+
+summary(total_amygdala_gamm_model$mer)
+summary(total_amygdala_gamm_model$gam)
+```
+
+\newpage
+
+#### Caregiver-Report Parenting and Stress on Total Amygdala Volume (GAMM)
+&nbsp;
+
+```{r total amyg kid parent gamm, echo = FALSE}
+total_amygdala_gamm_model <-gamm4(TotalAmygdalaVolume ~ Scan.Quality + 
+                                    Sex + s(Age)+ Total.Intracranial.Vol + 
+                                    Childhood.Stress * Pos.Parenting.Caregiver.Report,
+                                  random=~(1|Site), 
+                                  data=scaledat)
+
+
+summary(total_amygdala_gamm_model$mer)
+summary(total_amygdala_gamm_model$gam)
+
+```
+
+\newpage
+
+
+## Probing Questions of Interest Using a Quadtratic Stress Term to Account for Potential Non-Linear Stress Effects
+
+We ran a series of GAMMs modeling stress as a quadratic variable and a spline/smooth function applied to the interaction between stress and age. For total amygdala volume, as well as right and left amygdala volume, we fit a GAMM with a random effect of site, a quadratic stress (i.e, negative life events) term,  main effects of sex, estimated total intracranial volume (*Total.Intracranial.Vol*), youth-reported positive parenting, and a a smooth (non-linear) function applied to the interaction between negative life events and age. We also ran 3 additional models with the same DVs (ie.., total, left, and right amygdala) but instead using total Gray Matter Volume as the brain scaling covariate. Results indicate non-significant effects of stress and the interaction between stress and age. Notably, cross-sectional data is not well-suited to interrogate effects of interest (i.e., effects between stress and age) given that complex non-linear relations between amygdala structure and stress experiences play out over time. 
+
+```{r nonlinear stress lmem prep, eval=TRUE, include=TRUE, echo = FALSE}
+#create non-linear stress term
+dat$nl_Childhood.Stress <- 0
+dat$nl_Childhood.Stress <- (dat$Childhood.Stress)^2
+
+scaledat$nl_Childhood.Stress <- scale(dat$nl_Childhood.Stress)
+
+#create interaction term manually (so that gamm4 model can be used)
+scaledat$interaction<-(scaledat$nl_Childhood.Stress*scaledat$Age)
+```
+
+\clearpage
+
+##### Youth-Report Parenting and Non-Linear Stress on Total Amygdala Volume (GAMM)
+&nbsp;
+
+```{r total amyg kid kid nonlinear stress lmem, eval=TRUE, include=TRUE, echo = FALSE}
+
+TotalAmygdalaVolume_GAMM4 <- gamm4(TotalAmygdalaVolume ~ Sex + Total.Intracranial.Vol + 
+                                     nl_Childhood.Stress + Age + Scan.Quality +
+                                     s(interaction),
+                                   data=scaledat,
+                                   random=~(1|Site))
+
+summary(TotalAmygdalaVolume_GAMM4$mer)
+draw(TotalAmygdalaVolume_GAMM4)
+
+```
+
+\clearpage
+
+##### Youth-Report Parenting and Non-Linear Stress on Left Amygdala Volume (GAMM)
+&nbsp;
+
+```{r left amyg kid kid nonlinear stress lmem, eval=TRUE, include=TRUE, echo = FALSE}
+LeftAmygdalaVolume_GAMM4 <- gamm4(Left.Amygdala ~ Sex + Total.Intracranial.Vol + 
+                                    nl_Childhood.Stress + Age + Scan.Quality +
+                                    s(interaction),
+                                  data=scaledat,
+                                  random=~(1|Site))
+
+summary(LeftAmygdalaVolume_GAMM4$mer)
+draw(LeftAmygdalaVolume_GAMM4)
+```
+
+\clearpage
+
+##### Youth-Report Parenting and Non-Linear Stress on Right Amygdala Volume (GAMM)
+&nbsp;
+
+```{r right amyg kid kid nonlinear stress lmem, eval=TRUE, include=TRUE, echo = FALSE}
+RightAmygdalaVolume_GAMM4 <- gamm4(Right.Amygdala ~ Sex + Total.Intracranial.Vol +
+                                     nl_Childhood.Stress + Age + Scan.Quality +
+                                     s(interaction),
+                                   data=scaledat,
+                                   random=~(1|Site))
+
+summary(RightAmygdalaVolume_GAMM4$mer)
+draw(RightAmygdalaVolume_GAMM4)
+```
+
+
+\clearpage
+
+#### Youth-Report Parenting and Non-Linear Stress on Total Amygdala Volume using Total Gray Matter Volume as the Brain Covariate (GAMM)
+&nbsp;
+
+```{r total amyg kid kid nonlinear stress gmv lmem, eval=TRUE, include=TRUE, echo = FALSE}
+total_amygdala_nlstress_gmv_model <-gamm4(TotalAmygdalaVolume ~ Scan.Quality + 
+                                  Sex  + Total.Gray.Vol +
+                                  Age + nl_Childhood.Stress + s(interaction),
+                                  data=scaledat,
+                                  random=~(1|Site))
+
+summary(total_amygdala_nlstress_gmv_model$mer)
+
+```
+
+\clearpage
+
+#### Youth-Report Parenting and Non-Linear Stress on Left Amygdala Volume using Total Gray Matter Volume as the Brain Covariate (GAMM)
+&nbsp;
+
+```{r left amyg kid kid nonlinear stress gmv lmem, eval=TRUE, include=TRUE, echo = FALSE}
+l_amygdala_nlstress_gmv_model <-gamm4(Left.Amygdala ~ Scan.Quality + 
+                                  Sex  + Total.Gray.Vol +
+                                  Age + nl_Childhood.Stress + s(interaction),
+                                  data=scaledat,
+                                  random=~(1|Site))
+
+summary(l_amygdala_nlstress_gmv_model$mer)
+```
+
+\clearpage
+
+#### Youth-Report Parenting and Non-Linear Stress on Right Amygdala Volume using Total Gray Matter Volume as the Brain Covariate (GAMM)
+&nbsp;
+
+```{r right amyg kid kid nonlinear stress gmv lmem, eval=TRUE, include=TRUE, echo = FALSE}
+
+r_amygdala_nlstress_gmv_model <-gamm4(Right.Amygdala ~ Scan.Quality + 
+                                  Sex  + Total.Gray.Vol +
+                                  Age + nl_Childhood.Stress + s(interaction),
+                                  data=scaledat,
+                                  random=~(1|Site))
+
+summary(r_amygdala_nlstress_gmv_model$mer)
+
+```
+
+
+\clearpage
+
+## Investigating Total Brain Region Volumes with Total Grey Matter Volume as an Alternative Covariate to Estimated Total Intracranial Volume
+
+
+Our main models in the manuscript included estimated total intracranial volume (*eTIV*/*Total.Intracranial.Vol*) as our brain covariate to control for individual differences in brain size. We ran sensitivity analyses with an alternative measure of brain size, *Total Gray Matter Volume* (Total.Gray.Vol) for each of our main LMEMs. Overall, we found that the inclusion of *Total.Gray.Vol* versus *Total.Intracranial.Vol* does not significantly impact model results.
+
+In parallel to the main models presented in the manuscript, there remained a significant interaction between youth-reported parenting and stress on changes in total hippocampal volume when *Total.Gray.Vol* was included as the brain scaling variable instead of *Total.Intracranial.Vol*. These sensitivity analyses underscore that the significant interaction between stress and youth-reported positive parenting on hippocampal volumes is consistent even when accounting for individual differences in brain size in various ways. As in our main models, there was not a significant association between the interaction of caregiver-reported parenting and stress on hippocampal volume when *Total.Gray.Vol* was included as the brain scaling variable instead of *Total.Intracranial.Vol*. These findings continue to highlight importance of centering *youth* reports to understand associations between stress, parenting, and the hippocampus.
+
+Aligned with the main models, the inclusion of *Total.Gray.Vol* instead of *Total.Intracranial.Vol* in models with the amygdala did not change results (i.e., associations remained non-significant).
+
+\newpage
+
+#### Total.Gray.Vol, Youth-Report Parenting, and Stress on Total Hippocampal Volume (LMEM)
+&nbsp;
+
+```{r Total Hippo Kid Kid Total.Gray.Vol Model, warning=FALSE, echo = FALSE}
+
+Total_hippocampus_model_kidkid <-lmer(TotalHippocampalVolume ~ Scan.Quality + 
+                                        Sex + Age+ Total.Gray.Vol + 
+                                        Childhood.Stress * Pos.Parenting.Youth.Report + 
+                                        (1|Site), 
+                                      data=scaledat)
+
+#simple_slopes(Total_hippocampus_model_kidkid)
+
+summ(Total_hippocampus_model_kidkid)
+
+```
+
+```{r total hippo kid report parenting Total.Gray.Vol, eval = TRUE, include = FALSE}
+#NLE youth report, Parenting caregiver report
+tot_hippo_model_kidkid_Total.Gray.Vol <-lmer(TotalHippocampalVolume ~ Scan.Quality + 
+                                    Sex + Age+ Total.Gray.Vol + 
+                                    Childhood.Stress*Pos.Parenting.Youth.Report + 
+                                    (1|Site), 
+                                  data=scaledat)
+
+
+interact_plot(tot_hippo_model_kidkid_Total.Gray.Vol, pred = Childhood.Stress, modx = Pos.Parenting.Youth.Report, interval = FALSE,colors="CUD Bright", line.thickness=1,vary.lty= FALSE, x.label =  "Negative Life Events: youth Report", y.label = "Total Hippocampal Volume", legend.main = "Positive Parenting (youth Report)") + theme_nice(legend.pos = "right") 
+
+```
+
+\clearpage
+
+#### Total.Gray.Vol, Caregiver-Report Parenting, and Stress on Total Hippocampal Volume (LMEM)
+&nbsp;
+
+```{r Total Hippo Kid Parent Total.Gray.Vol Model, echo = FALSE}
+
+Total_hippocampus_model_kidparent <-lmer(TotalHippocampalVolume ~ Scan.Quality +
+                                           Sex + Age+ Total.Gray.Vol + 
+                                           Childhood.Stress * Pos.Parenting.Caregiver.Report + 
+                                           (1|Site), 
+                                         data=scaledat)
+
+summ(Total_hippocampus_model_kidparent)
+
+```
+
+\clearpage
+
+#### Total.Gray.Vol, Youth-Report Parenting, and Stress on Total Amygdala Volume (LMEM)
+&nbsp;
+
+```{r Total Amyg Kid Kid Total.Gray.Vol Model, echo = FALSE}
+
+Total_amygdala_model_kidkid <-lmer(TotalAmygdalaVolume ~ Scan.Quality + 
+                                     Sex + Age+ Total.Gray.Vol + 
+                                     Childhood.Stress * Pos.Parenting.Youth.Report + 
+                                     (1|Site), 
+                                   data=scaledat)
+
+summ(Total_amygdala_model_kidkid)
+
+```
+
+\clearpage
+
+#### Total.Gray.Vol, Caregiver-Report Parenting, and Stress on Total Amygdala Volume (LMEM)
+&nbsp;
+
+```{r Total Amyg Kid Parent Total.Gray.Vol Model, echo = FALSE}
+
+Total_amygdala_model_kidparent <-lmer(TotalAmygdalaVolume ~ Scan.Quality + 
+                                        Sex + Age+ Total.Gray.Vol + 
+                                        Childhood.Stress * Pos.Parenting.Caregiver.Report + 
+                                        (1|Site), 
+                                      data=scaledat)
+
+summ(Total_amygdala_model_kidparent)
+
+```
+
+\clearpage
+
+## Investigating Left and Right Hemispheres of Brain Regions Separately
+
+Our main models in the manuscript investigated the interactions between childhoos stress and both youth- and caregiver-reported positive parenting on *total* hippocampal and amygdala volume. The *total* volume variables were derived by adding the volumes for the left and right hemispheres of the hippocampus and amygdala, respectively. We ran sensitivity analyses investigating the interactions between childhood stress and both youth- and caregiver-reported positive parenting on each the left and right hemisphere of the hippocampus and amygdala. Briefly, we found that the interaction between stress and youth-reported positive parenting was significant for the left *and* right hippocampus, and was not significant for either the left or right amygdala. Consistent with the pattern of results reported in our manuscript, the interaction between childhood stress and caregiver-reported positive parenting was not significant for the left hippocampus, right hippocampus, left amygdala, or right amydala.
+
+These analyses underscore that, when centering the youth's perspective of positive parenting, there is a consistent buffering effect of positive parenting on the association between stress and hippocampal volumes, whether that be total volume, left hemisphere, or right hemisphere. Our models do not provide evidence for an analogous effect for the amgydala.
+
+\newpage 
+
+#### Youth-Report Parenting and Stress on L and R Hippocampal Hemispheres Separately (LMEM)
+&nbsp;
+
+#### Left Hippocampus
+&nbsp;
+
+```{r L Hippo Kid Kid Total.Intracranial.Vol Model, warning=FALSE, echo = FALSE}
+
+Left_hippocampus_model_kidkid <-lmer(Left.Hippocampus ~ Scan.Quality + 
+                                       Sex + Age+ Total.Intracranial.Vol + 
+                                       Childhood.Stress * Pos.Parenting.Youth.Report + 
+                                       (1|Site), 
+                                     data=scaledat)
+
+#simple_slopes(Left_hippocampus_model_kidkid)
+summ(Left_hippocampus_model_kidkid)
+
+```
+
+```{r left hippo youth report parenting, message = FALSE, eval = TRUE, include = FALSE, echo = FALSE}
+#Negative life events youth report, caregiving youth report
+
+Left_hippocampus_model_kidkid <-lmer(Left.Hippocampus ~ Scan.Quality + 
+                                       Sex + Age+ Total.Gray.Vol + 
+                                       Childhood.Stress * Pos.Parenting.Youth.Report + 
+                                       (1|Site), 
+                                     data=scaledat)
+
+interact_plot(Left_hippocampus_model_kidkid, pred = Childhood.Stress, modx = Pos.Parenting.Youth.Report, interval = FALSE,colors="CUD Bright", line.thickness=1, vary.lty= FALSE, x.label =  "Negative Life Events: youth Report", y.label = "Left Hippocampal Volume", legend.main = "Positive Parenting (youth Report)") + theme_nice(legend.pos = "right") 
+
+```
+
+\clearpage
+
+#### Right Hippocampus
+&nbsp;
+
+```{r R Hippo Kid Kid Total.Intracranial.Vol Model, warning=FALSE, echo = FALSE}
+
+Right_hippocampus_model_kidkid <-lmer(Right.Hippocampus ~ Scan.Quality + 
+                                        Sex + Age+ Total.Intracranial.Vol + 
+                                        Childhood.Stress * Pos.Parenting.Youth.Report + 
+                                        (1|Site), 
+                                      data=scaledat)
+
+#simple_slopes(Right_hippocampus_model_kidkid)
+summ(Right_hippocampus_model_kidkid)
+
+```
+
+```{r right hippo youth report parenting, eval = TRUE, message = FALSE, include = FALSE, echo = FALSE}
+#Negative life events youth report, caregiving youth report
+
+Right_hippocampus_model_kidkid <-lmer(Right.Hippocampus ~ Scan.Quality + 
+                                        Sex + Age+ Total.Gray.Vol + 
+                                        Childhood.Stress * Pos.Parenting.Youth.Report + 
+                                        (1|Site), 
+                                      data=scaledat)
+
+interact_plot(Right_hippocampus_model_kidkid, pred = Childhood.Stress, modx = Pos.Parenting.Youth.Report, interval = FALSE,colors="CUD Bright", line.thickness=1, vary.lty= FALSE, x.label =  "Negative Life Events: youth Report", y.label = "Right Hippocampal Volume", legend.main = "Positive Parenting (youth Report)") + theme_nice(legend.pos = "right") 
+
+```
+
+\clearpage
+
+#### Youth-Report Parenting and Stress on L and R Amygdala Hemispheres Separately (LMEM)
+&nbsp;
+
+#### Left Amygdala
+&nbsp;
+
+```{r L Amyg Kid Kid Total.Intracranial.Vol Model, echo = FALSE}
+
+Left_amygdala_model_kidkid <-lmer(Left.Amygdala ~ Scan.Quality + 
+                                    Sex + Age+ Total.Intracranial.Vol + 
+                                    Childhood.Stress * Pos.Parenting.Youth.Report + 
+                                    (1|Site), 
+                                  data=scaledat)
+
+summ(Left_amygdala_model_kidkid)
+```
+
+\clearpage
+
+#### Right Amygdala
+&nbsp;
+
+```{r R Amyg Kid Kid Total.Intracranial.Vol Model, echo = FALSE}
+
+Right_amygdala_model_kidkid <-lmer(Right.Amygdala ~ Scan.Quality + 
+                                     Sex + Age+ Total.Intracranial.Vol + 
+                                     Childhood.Stress * Pos.Parenting.Youth.Report + 
+                                     (1|Site), 
+                                   data=scaledat)
+
+summ(Right_amygdala_model_kidkid)
+```
+
+\clearpage
+
+#### Caregiver-Report Parenting and Stress on L and R Hippocampal Hemispheres Separately (LMEM)
+&nbsp;
+
+#### Left Hippocampus
+&nbsp;
+
+```{r L Hippo Kid Parent Total.Intracranial.Vol Model, echo = FALSE}
+
+Left_hippocampus_model_kidparent <-lmer(Left.Hippocampus ~ Scan.Quality + 
+                                          Sex + Age+ Total.Intracranial.Vol + 
+                                          Childhood.Stress * Pos.Parenting.Caregiver.Report + 
+                                          (1|Site), 
+                                        data=scaledat)
+
+summ(Left_hippocampus_model_kidparent)
+
+```
+
+\clearpage
+
+#### Right Hippocampus
+&nbsp;
+
+```{r R Hippo Kid Parent Total.Intracranial.Vol Model, echo = FALSE}
+
+Right_hippocampus_model_kidparent <-lmer(Right.Hippocampus ~ Scan.Quality + 
+                                           Sex + Age+ Total.Intracranial.Vol + 
+                                           Childhood.Stress * Pos.Parenting.Caregiver.Report + 
+                                           (1|Site), 
+                                         data=scaledat)
+
+summ(Right_hippocampus_model_kidparent)
+
+```
+
+\newpage
+
+#### Caregiver-Report Parenting and Stress on L and R Amygdala Hemispheres Separately (LMEM)
+&nbsp;
+
+#### Left Amygdala
+&nbsp;
+
+```{r L Amyg Kid Parent Total.Intracranial.Vol Model, echo = FALSE}
+
+Left_amygdala_model_kidparent <-lmer(Left.Amygdala ~ Scan.Quality +
+                                       Sex + Age+ Total.Intracranial.Vol + 
+                                       Childhood.Stress * Pos.Parenting.Caregiver.Report + 
+                                       (1|Site), 
+                                     data=scaledat)
+
+summ(Left_amygdala_model_kidparent)
+```
+
+\clearpage
+
+#### Right Amygdala
+&nbsp;
+
+```{r R Amyg Kid Parent eITV Model, echo = FALSE}
+
+Right_amygdala_model_kidparent <-lmer(Right.Amygdala ~ Scan.Quality + 
+                                        Sex + Age+ Total.Intracranial.Vol +
+                                        Childhood.Stress * Pos.Parenting.Caregiver.Report + 
+                                        (1|Site), 
+                                      data=scaledat)
+
+summ(Right_amygdala_model_kidparent)
+```
+
+\clearpage
+
+## Examining Associations Between Hippocampal Volumes and Youth Behavioral Problems
+
+Our previous results found significant interactions between stress and positive parenting (from the youth perspective) on left, right, and total hippocampal volume. We lastly investigated the association between total hippocampal volume and youth behavioral problems. We considered both YSR Total Score (Youth-reported behavioral problems) and SDQ (caregiver-reported behavioral problems) as dependent variables in separate models.
+
+We ran analyses considering YSR Total Score as linear mixed-effects models (LMEM) and as linear models (LM) due to issues with singularity for YSR Total Score in a LMEM. Across both types of models, results were consistent, with a non-significant relationship between total hippocampal volume and the YSR. We also examined associations with left and right hippocampal volumes, finding a significant association youth behavioral problems (YSR) and left hippocampal volumes. 
+
+\newpage 
+
+#### Total Hippocampal Volumes on Youth Behavioral Problems (Youth-Report/YSR) as a linear mixed-effects model
+&nbsp;
+
+```{r YSR and total hippo lmer, echo = FALSE, warning = FALSE}
+
+YSR.Total_total_hippo_model<-lmer(Youth.Self.Report.Total ~ Sex + 
+                                    Age+ Total.Intracranial.Vol + 
+                                    Scan.Quality + (1|Site) + 
+                                    TotalHippocampalVolume, 
+                                  data=scaledat)
+
+summ(YSR.Total_total_hippo_model)
+
+```
+
+\clearpage
+
+#### Total Hippocampal Volumes on Youth Behavioral Problems (Youth-Report/YSR)  as a linear model
+&nbsp;
+
+```{r YSR and total hippo lm, echo = FALSE}
+
+YSR.Total_total_hippo_model<-lm(Youth.Self.Report.Total ~ Sex + 
+                                  Age+ Total.Intracranial.Vol + 
+                                  Site + Scan.Quality +
+                                  TotalHippocampalVolume, 
+                                data=scaledat)
+
+summ(YSR.Total_total_hippo_model)
+
+```
+
+\clearpage
+
+#### Total Hippocampal Volumes on Youth Behavioral Problems (Caregiver-Report/SDQ)  as a linear mixed-effects model
+&nbsp;
+
+We did not find a significant relationship between SDQ total score and total hippocampal volume.
+
+```{r sdq and total hippocampal volume, echo = FALSE}
+
+Strengths.Difficulties.Total_total_hippo_model<-lmer(Strengths.Difficulties.Total ~ Sex + 
+                                                       Age+ Total.Intracranial.Vol + 
+                                                       (1|Site) + Scan.Quality + 
+                                                       TotalHippocampalVolume, 
+                                                     data=scaledat)
+
+summ(Strengths.Difficulties.Total_total_hippo_model)
+```
+
+\clearpage
+
+#### Left Hippocampus on Youth Behavioral Problems (Caregiver-Report/SDQ)  as a linear mixed-effects model
+&nbsp;
+
+The association between the left hippocampus and total SDQ score was significant, indicating that increased youth behavioral problems are significantly associated with decreased volume in the left hippocampus. These results are visualized after the model output below. We did not find parallel results for the right hippocampus.
+
+```{r SDQ and Left Hippo, echo = FALSE}
+Strengths.Difficulties.Total_left_hippo_model<-lmer(Strengths.Difficulties.Total ~ Sex + 
+                                                      Age + Total.Intracranial.Vol  + 
+                                                      (1|Site) + Scan.Quality + 
+                                                      Left.Hippocampus, 
+                                                    data=scaledat)
+
+summ(Strengths.Difficulties.Total_left_hippo_model)
+```
+
+```{r plotting SDQ and Left Hippo, eval = TRUE, echo = FALSE, warning=FALSE}
+plotdat <- dat %>% 
+  mutate(Left.Hippocampus_Z = scale(Left.Hippocampus),
+         Age_Z = scale(Age),
+         Scan.Quality_Z = scale(Scan.Quality),
+         Total.Intracranial.Vol_Z = scale(Total.Intracranial.Vol)
+         )
+
+#need another versino of the analysis that uses scaled vars for all numerics besides SDQ -- this is plotdat
+
+PLOT_Strengths.Difficulties.Total_left_hippo_model<-lmer(Strengths.Difficulties.Total ~ Sex + Age_Z+ Total.Intracranial.Vol_Z + Left.Hippocampus_Z + (1|Site) + Scan.Quality_Z, data=plotdat)
+
+
+# Use the effects package --> effect function. term= the fixed effect you want to get data on, mod= name of your model.
+effects_lmer <- effects::effect(term= "Left.Hippocampus_Z", mod= PLOT_Strengths.Difficulties.Total_left_hippo_model)
+#summary(effects_lmer) #output of what the values are
+# Save the effects values as a df:
+x_hippo <- as.data.frame(effects_lmer)
+
+lmer_plot <- ggplot() + geom_point(data=plotdat, aes(Left.Hippocampus_Z, Strengths.Difficulties.Total)) + 
+  geom_point(data=x_hippo, aes(x=Left.Hippocampus_Z, y=fit), color="blue") +
+  geom_line(data=x_hippo, aes(x=Left.Hippocampus_Z, y=fit), color="blue") +
+  geom_ribbon(data= x_hippo, aes(x=Left.Hippocampus_Z, ymin=lower, ymax=upper), alpha= 0.3, fill="blue") +
+  labs(x="Left Hippocampus Volume (centered & scaled)", y="Strength & Difficulties Questionnaire Score")
+lmer_plot
+
+```
+
+**Figure S1.** Association between left hippocampal volumes and Total score on the caregiver-reported Strengths & Difficulties Questionnaire. 
+
+
+\clearpage
+
+#### Right Hippocampus on Youth Behavioral Problems (Caregiver-Report/SDQ) as a linear mixed-effects model
+&nbsp;
+
+
+```{r SDQ and Right Hippo, echo = FALSE}
+Strengths.Difficulties.Total_right_hippo_model<-lmer(Strengths.Difficulties.Total ~ Sex + 
+                                                       Age + Total.Intracranial.Vol + 
+                                                       (1|Site) + Scan.Quality + 
+                                                       Right.Hippocampus, 
+                                                     data=scaledat)
+
+summ(Strengths.Difficulties.Total_right_hippo_model)
+```
+
+
+\clearpage 
+
+## Comparing Key Variables between HBN-Imaging Sample to HBN-Total Sample 
+
+This data is drawn from the Healthy Brain Network (HBN) study, a large-scale, publicly-available dataset with measures from over 4,000 children across New York City. Importantly, not all participants have completed all measures. The total amount of datapoints for relevant study variables ranges from 482 to 3,437 depending on a) whether participants were part of the imaging protocol and b) missingness on study variables.  
+
+We ran missing data analyses comparing the subsample with imaging data (N = 482) to the larger HBN sample on the following key study variables: Youth-Reported Negative Life Events, Youth-Reported Positive Parenting, Caregiver-Reported Positive Parenting, and Youth Self-Report scores. We created a binary indicator variable *imaging* that we used as the independent variable in all below analyses to test for any differences between the imaging subsample and larger HBN sample (0 = not part of imaging sample, 1 = part of imaging sample).
+
+
+For more information on the Healthy Brain Network or to get access to data, visit this site: 
+http://fcon_1000.projects.nitrc.org/indi/cmi_healthy_brain_network/
+
+
+```{r, eval = TRUE, include = FALSE, warning = FALSE, echo = FALSE}
+fullhbn <- read.csv("/Users/isabellakahhale/OneDrive/Isabella/Research/HippoParentingPaper/data/full_hbn_sample_missing_data_analysis.csv", na.strings = c("."))
+
+
+# remove "sub" from sub_id in dat and make it id column
+i = 1
+#same name as the subID column in phenotypic data
+ dat$id <- 0
+
+#testing loop
+for (i in 1:(nrow(dat))) {
+
+  id <- paste(dat$sub_id[i])   
+  
+  #split the string vector from the comma into two
+  split <- strsplit(id,"-")[[1]]
+  
+  #the first element of split is the SUBID we want
+  newID <- split[[2]]
+
+  dat$id[i] <- newID
+  }
+
+# make a new column in fullhbn titled imaging (0 = none, 1 = has imaging)
+# give everyone a 0
+
+fullhbn$imaging <- 0 
+
+i = 1 
+# go through fullhbn identifiers one by one 
+
+for (i in 1:nrow(fullhbn)) {
+  # if identifer is in dat (the imaging frame)
+  if((fullhbn$Identifiers[i] %in% dat$id) == TRUE) {
+    
+   # which(fullhbn$Identifier[i] %in% dat$id)
+          
+          
+    #give imaging 1 
+    fullhbn$imaging[i] = 1
+    print(i)
+  } 
+  
+  else {
+  }
+  
+}
+
+# this doesn't work -- jusst assignes 1 to first 482. need it to be the same identifier
+
+fullhbn <- fullhbn %>% 
+  dplyr::rename(
+         Childhood.Stress = NLES_SR.NLES_SR_Upset_Avg,
+         Pos.Parenting.Youth.Report = APQ_SR.APQ_SR_PP,
+         Pos.Parenting.Caregiver.Report = APQ_P.APQ_P_PP,
+         Youth.Self.Report.Total = YSR.YSR_Total,
+         Study.Site = Basic_Demos.Study_Site
+         )
+
+nonimaging <- fullhbn %>% 
+  filter(imaging ==0)
+
+mean(nonimaging$Childhood.Stress, na.rm = T)
+
+imaging <- fullhbn %>% 
+  filter(imaging ==1) 
+
+mean(imaging$Childhood.Stress, na.rm = T)
+```
+
+#### Negative Life Events
+&nbsp;
+
+```{r life stress as dv, echo = FALSE}
+stressmodel <- lm(Childhood.Stress ~ imaging, data = fullhbn)
+summ(stressmodel)
+```
+
+\clearpage
+ 
+#### Youth-Report Parenting
+&nbsp;
+
+```{r youth-report parenting as dv, echo = FALSE}
+youthparentingmodel <- lm(Pos.Parenting.Youth.Report ~ imaging, data = fullhbn)
+summ(youthparentingmodel)
+```
+
+#### Caregiver-Report Parenting
+&nbsp;
+
+```{r caregiver-report parenting as dv, echo = FALSE}
+caregiverparentingmodel <- lm(Pos.Parenting.Caregiver.Report ~ imaging, data = fullhbn)
+summ(caregiverparentingmodel)
+```
+
+\clearpage 
+
+#### Youth-Self Report
+&nbsp;
+
+```{r YSR as dv, echo = FALSE}
+ysrmodel <- lm(Youth.Self.Report.Total ~ imaging, data = fullhbn)
+summ(ysrmodel)
+```
+
+\clearpage
+
+```{r multiple comparision corrections, include = FALSE, eval = FALSE, echo = FALSE}
+# Corrections for Multiple Comparisions: Main Models
+
+
+# aLL p values for main manuscript models 
+pvals <- read.csv("/Users/isabellakahhale/Library/CloudStorage/OneDrive-UniversityofPittsburgh/Isabella/Research/HippoParentingPaper/Submissions/PNAS_submission/Submission2_R&R/mainmanuscript_pvalues2.csv")
+
+pval_vec <- pvals$raw_pvalue
+
+pvaladjust <- Bon_EV(pval_vec, 0.05)
+
+#make a new column in pvals2 data table
+pvals$adjusted_BH <-0 
+pvals$adjusted_BH<- pvaladjust$BH_adjp
+pvals$adjusted_Storey <-0 
+pvals$adjusted_Storey<- pvaladjust$Storey_adjp
+pvals$adjusted_BonEV <-0 
+pvals$adjusted_BonEV<- pvaladjust$Bon_EV_adjp
+
+#write.csv(pvals, "adjustedvals.csv")
+```
+
+
+# Supplemental References
+
+Achenbach, T. M., Howell, C. T., McConaughy, S. H., & Stanger, C. (1995). Six-year predictors of problems in a national sample: III. Transitions to young adult syndromes. Journal of the American Academy of Child & Adolescent Psychiatry, 34(5), 658–669.
+
+Achenbach, T. M., & Rescorla, L. (2001). Manual for the ASEBA School?-Age Forms & Profiles. Burlington, VT: University of Vermont, Research Center for Children, Youth, and Families.
+
+Avesani, P., McPherson, B., Hayashi, S., Caiafa, C. F., Henschel, R., Garyfallidis, E., Kitchell, L., Bullock, D., Patterson, A., Olivetti, E., & others. (2019). The open diffusion data derivatives, brain data upcycling via integrated publishing of derivatives and reproducible open cloud services. Scientific Data, 6(1), 1–13.
+
+Barratt, W. (2006). The Barratt simplified measure of social status (BSMSS): Measuring SES. Unpublished manuscript. http://socialclassoncampus.blogspot.com/2012/06/barratt-simplified-measure-of-social.html
+
+Bates, D., Mächler, M., Bolker, B., & Walker, S. (2015). Fitting Linear Mixed-Effects Models Using lme4. Journal of Statistical Software, 67(1), 1–48. https://doi.org/10.18637/jss.v067.i01
+
+Dadds, M. R., Maujean, A., & Fraser, J. A. (2003). Parenting and conduct problems in children: Australian data and psychometric properties of the Alabama Parenting Questionnaire. Australian Psychologist, 38(3), 238–241.
+
+Dale, A. M., Fischl, B., & Sereno, M. I. (1999). Cortical surface-based analysis: I. Segmentation and surface reconstruction. NeuroImage. https://doi.org/10.1006/nimg.1998.0395
+
+Dunn, O. J., & Clark, V. (1971). Comparison of tests of the equality of dependent correlation coefficients. Journal of the American Statistical Association, 66(336), 904–908.
+
+Essau, C. A., Sasagawa, S., & Frick, P. J. (2006). Psychometric properties of the Alabama parenting questionnaire. Journal of Child and Family Studies, 15(5), 595–614.
+
+Fischl, B., Salat, D. H., Busa, E., Albert, M., Dieterich, M., Haselgrove, C., Van Der Kouwe, A., Killiany, R., Kennedy, D., Klaveness, S., & others. (2002). Whole brain segmentation: Automated labeling of neuroanatomical structures in the human brain. Neuron, 33(3), 341–355.
+
+Fischl, B., Salat, D., van der Kouwe, A., & Makris, N. (n.d.). Sé gonne F, Quinn BT, Dale AM. 2004. Sequence-Independent Segmentation of Magnetic Resonance Images. NeuroImage, 23, S69–S84.
+
+Fischl, B., Sereno, M. I., & Dale, A. M. (1999). Cortical surface-based analysis: II: inflation, flattening, and a surface-based coordinate system. Neuroimage, 9(2), 195–207.
+
+Fischl, B., Sereno, M. I., Tootell, R. B. H., & Dale, A. M. (1999). High-resolution intersubject averaging and a coordinate system for the cortical surface. Human Brain Mapping, 8(4), 272–284. https://doi.org/10.1002/(SICI)1097-0193(1999)8:4<272::AID-HBM10>3.0.CO;2-4
+
+Fischl, B., Van Der Kouwe, A., Destrieux, C., Halgren, E., Ségonne, F., Salat, D. H., Busa, E., Seidman, L. J., Goldstein, J., Kennedy, D., & others. (2004). Automatically parcellating the human cerebral cortex. Cerebral Cortex, 14(1), 11–22.
+
+Gaser, C., Dahnke, R., & others. (2016). CAT-a computational anatomy toolbox for the analysis of structural MRI data. Hbm, 2016, 336–348.
+
+Gilmore, A. D., Buser, N. J., & Hanson, J. L. (2021). Variations in structural MRI quality significantly impact commonly used measures of brain anatomy. Brain Informatics, 8(1), 1–15.
+
+Goodman, R. (2001). Psychometric properties of the Strengths and Difficulties Questionnaire. Journal of the American Academy of Child & Adolescent Psychiatry, 40(11), 1337-1345.
+
+Hollingshead, August B. (1957). Two factor index of social position. Unpublished manuscript, Department of Sociology, Yale University, New Haven, Connecticut
+
+Hollingshead, A. B. (1975). Four factor index of social status. Unpublished manuscript, Department of Sociology, Yale University, New Haven, CT.
+   
+Johnston, C. A. (2003). Parent and Child Reporting of Negative Life Events: Discrepancy and Agreement across Pediatric Samples. Journal of Pediatric Psychology, 28(8), 579–588. https://doi.org/10.1093/jpepsy/jsg048
+
+Larsen, B., Bourque, J., Moore, T. M., Adebimpe, A., Calkins, M. E., Elliott, M. A., Gur, R. C., Gur, R. E., Moberg, P. J., Roalf, D. R., & others. (2020). Longitudinal development of brain iron is linked to cognition in youth. Journal of Neuroscience, 40(9), 1810--1818.
+
+Liang, J., Shou, Y., Wang, M.-C., Deng, J., & Luo, J. (2021). Alabama Parenting Questionnaire-9: A reliability generalization meta-analysis. Psychological Assessment.
+
+Long, J. A. (2019). interactions: Comprehensive, User-Friendly Toolkit for Probing Interactions. https://cran.r-project.org/package=interactions
+
+ Lüdecke et al., (2021). performance: An R Package for Assessment, Comparison and Testing of Statistical Models. Journal of Open Source Software, 6(60), 3139. https://doi.org/10.21105/joss.03139
+
+Revelle, W. (2022). psych: Procedures for Psychological, Psychometric, and Personality Research. Northwestern University. https://CRAN.R-project.org/package=psych
+
+Shelton, K. K., Frick, P. J., & Wootton, J. (1996). Assessment of parenting practices in families of elementary school-age children. Journal of Clinical Child Psychology, 25(3), 317–329.
+
+Thurber, S., & Sheehan, W. (2012). Note on Truncated T Scores in Discrepancy Studies with the Child Behavior Checklist and Youth Self Report.
+
+Wechsler, D. (2014). The Wechsler intelligence scale for children—fifth edition. San Antonio, TX: The Psychological Corporation.
+
+Williams, D. (1971). A test for differences between treatment means when several dose levels are compared with a zero dose control. Biometrics, 103–117.
+
+Wood, S. &  Scheipl, F. (2020). gamm4: Generalized Additive Mixed Models using 'mgcv' and 
+'lme4'. R package version 0.2-6. <https://CRAN.R-project.org/package=gamm4>
+
+
+
+
